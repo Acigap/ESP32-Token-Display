@@ -1,0 +1,46 @@
+name: Build Firmware
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    name: Compile ESP32 Firmware
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Provide a safe config.h from the example ─────────
+      - name: Create config.h from example
+        run: cp include/config.h.example include/config.h
+
+      # ── Cache PlatformIO packages for faster runs ────────
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      # ── Compile ──────────────────────────────────────────
+      - name: Build [env:esp32dev]
+        run: pio run -e esp32dev
+
+      # ── Upload firmware artifact (inspectable without flashing) ──
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ github.sha }}
+          path: .pio/build/esp32dev/firmware.bin
+          retention-days: 30

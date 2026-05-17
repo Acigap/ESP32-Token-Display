@@ -1,0 +1,52 @@
+name: Release Firmware
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # triggers on v1.0.0, v1.2.3, etc.
+
+permissions:
+  contents: write  # needed to create GitHub Releases
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create config.h from example
+        run: cp include/config.h.example include/config.h
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build firmware
+        run: pio run -e esp32dev
+
+      - name: Rename firmware with version tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          cp .pio/build/esp32dev/firmware.bin "TokenDisplay-${TAG}.bin"
+
+      # ── Create GitHub Release with the binary attached ───
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "TokenDisplay ${{ github.ref_name }}"
+          body_path: CHANGELOG.md
+          files: "TokenDisplay-${{ github.ref_name }}.bin"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

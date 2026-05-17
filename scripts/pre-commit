@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# .git/hooks/pre-commit
+#
+# Runs automatically before every `git commit`.
+# Install once:  bash scripts/install-hooks.sh
+#
+# Checks:
+#   1. config.h must NOT be staged (contains secrets)
+#   2. API keys / passwords must NOT appear in any staged file
+#   3. VERSION file must be present
+# ─────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+RED='\033[0;31m'
+YLW='\033[1;33m'
+GRN='\033[0;32m'
+NC='\033[0m'
+
+FAIL=0
+
+# ── 1. Block include/config.h from being committed ───────
+if git diff --cached --name-only | grep -q "^include/config\.h$"; then
+    echo -e "${RED}[BLOCKED]${NC} include/config.h is staged."
+    echo "  This file contains secrets. Add it to .gitignore and unstage it:"
+    echo "    git restore --staged include/config.h"
+    FAIL=1
+fi
+
+# ── 2. Scan staged content for obvious secret patterns ───
+SECRET_PATTERNS=(
+    'YOUR_WIFI_SSID'
+    'YOUR_WIFI_PASSWORD'
+    'YOUR_OPENROUTER_API_KEY'
+    'sk-or-v1-'          # real OpenRouter key prefix
+    'WIFI_PASSWORD\s*=\s*"[^"]'
+)
+
+for pattern in "${SECRET_PATTERNS[@]}"; do
+    if git diff --cached -U0 | grep -qE "\+.*${pattern}"; then
+        echo -e "${RED}[BLOCKED]${NC} Staged diff contains a secret pattern: ${YLW}${pattern}${NC}"
+        echo "  Remove the secret before committing."
+        FAIL=1
+    fi
+done
+
+# ── 3. VERSION file must exist ───────────────────────────
+if [[ ! -f "VERSION" ]]; then
+    echo -e "${YLW}[WARN]${NC} VERSION file not found. Create it with the current version, e.g. echo '1.0.0' > VERSION"
+fi
+
+# ── Result ───────────────────────────────────────────────
+if [[ $FAIL -ne 0 ]]; then
+    echo -e "\n${RED}Commit aborted.${NC} Fix the issues above and try again.\n"
+    exit 1
+fi
+
+echo -e "${GRN}[OK]${NC} Pre-commit checks passed."
+exit 0
