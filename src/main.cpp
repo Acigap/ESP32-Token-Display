@@ -170,7 +170,7 @@ void updateTokenData() {
     tft.fillRect(SCREEN_WIDTH / 2, _fy + 1, SCREEN_WIDTH / 2 - 1, FOOTER_H - 2, TFT_BLACK);
     tft.drawString("Updating...", SCREEN_WIDTH - 8, _fy + FOOTER_H / 2);
 
-    TokenData data = api.getCredits(API_KEYS[currentKeyIndex].provider);
+    TokenData data = api.getCredits();
     ui->updateTokenDisplay(data);
     lastUpdateTime = millis();
 

@@ -7,13 +7,13 @@
 #include "OpenRouterAPI.h"
 
 // ── Layout constants (landscape 320 × 170) ───────────────
-#define HEADER_H   36
+#define HEADER_H   28
 #define FOOTER_H   22
 #define BAR_H      14
 #define ACCENT_W    4   // left-edge coloured strip in header
 
 // ── Extended palette (RGB565) ─────────────────────────────
-#define COL_HEADER_BG  TFT_NAVY   // deep navy header
+#define COL_HEADER_BG  0x4A49     // dark grey header
 #define COL_LABEL      TFT_DARKGREY  // section sub-labels
 #define COL_MUTED      0x39E7     // dimmer grey — footer text
 #define COL_DIVIDER    0x2104     // near-black thin rules
@@ -34,20 +34,7 @@ static inline uint16_t lighten565(uint16_t c) {
     return (uint16_t)((r << 11) | (g << 5) | b);
 }
 
-// ── Short display name for each provider ─────────────────
-static inline const char* providerName(ProviderType p) {
-    switch (p) {
-        case PROVIDER_OPENAI: return "OpenAI";
-        default:              return "OpenRouter";
-    }
-}
-// ── Accent color per provider (overrides health color in header label) ─
-static inline uint16_t providerColor(ProviderType p) {
-    switch (p) {
-        case PROVIDER_OPENAI: return 0x07E0;   // OpenAI green (#00FF00 approx)
-        default:              return 0xFD20;   // OpenRouter orange
-    }
-}
+
 
 class DisplayUI {
 private:
@@ -74,41 +61,32 @@ private:
         tft->fillRect(0, 0, ACCENT_W, HEADER_H, accent);
         tft->fillRect(ACCENT_W, 0, 1, HEADER_H, COL_DIVIDER);
 
-        const int textX = ACCENT_W + 8;
+        String keyStr = (keyConfigs != nullptr)
+            ? String(keyConfigs[selectedKeyIndex].name)
+            : ("Key " + String(selectedKeyIndex + 1));
 
-        // ── Top micro-row: "AI TOKEN MONITOR" ─────────────
+        const int cy = HEADER_H / 2;
+        int x = ACCENT_W + 8;
+
+        tft->setTextSize(2);
         tft->setTextDatum(ML_DATUM);
-        tft->setTextColor(COL_LABEL, COL_HEADER_BG);
-        tft->setTextSize(1);
-        tft->drawString("AI TOKEN MONITOR", textX, 9);
 
-        // ── Bottom row: provider badge · key name ──────────
-        ProviderType prov = (keyConfigs != nullptr)
-            ? keyConfigs[selectedKeyIndex].provider
-            : PROVIDER_OPENROUTER;
-        uint16_t pColor = providerColor(prov);
-        String provStr = String(providerName(prov));
-        String keyStr  = (keyConfigs != nullptr)
-            ? (" \xB7 " + String(keyConfigs[selectedKeyIndex].name))
-            : (" \xB7 Key " + String(selectedKeyIndex + 1));
+        // "Token" — accent (health) colour
+        tft->setTextColor(accent, COL_HEADER_BG);
+        tft->drawString("Token", x, cy);
+        x += tft->textWidth("Token");
 
-        tft->setTextDatum(ML_DATUM);
-        tft->setTextColor(pColor, COL_HEADER_BG);
-        tft->setTextSize(1);
-        tft->drawString(provStr, textX, 25);
-
-        // Measure provider text width to position key name after it
-        int provW = tft->textWidth(provStr, 1);
+        // " · keyname" — white
         tft->setTextColor(TFT_WHITE, COL_HEADER_BG);
-        tft->drawString(keyStr, textX + provW, 25);
+        tft->drawString(" \xB7 " + keyStr, x, cy);
 
-        // Key counter (top-right)
+        // Counter — right, size 1
         tft->setTextDatum(MR_DATUM);
-        tft->setTextColor(COL_MUTED, COL_HEADER_BG);
+        tft->setTextSize(1);
+        tft->setTextColor(TFT_LIGHTGREY, COL_HEADER_BG);
         tft->drawString(String(selectedKeyIndex + 1) + "/" + String(numKeys),
-                        SCREEN_WIDTH - 6, 25);
+                        SCREEN_WIDTH - 4, cy);
 
-        // Bottom rule
         tft->drawFastHLine(0, HEADER_H - 1, SCREEN_WIDTH, COL_DIVIDER);
     }
 
