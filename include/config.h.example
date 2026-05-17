@@ -9,26 +9,37 @@
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 
 // ========================================
-// OpenRouter API Configuration
+// API Configuration
 // ========================================
 #define OPENROUTER_API_URL "https://openrouter.ai/api/v1/auth/key"
+
+// ========================================
+// AI Provider Selection
+// ========================================
+// เลือก provider ที่รองรับ:
+//   PROVIDER_OPENROUTER  — openrouter.ai (ระบบ credit)
+//   PROVIDER_OPENAI      — api.openai.com (pay-as-you-go)
+enum ProviderType {
+    PROVIDER_OPENROUTER = 0,
+    PROVIDER_OPENAI     = 1,
+};
 
 // ========================================
 // API Keys Configuration
 // ========================================
 // เพิ่ม API Keys ของคุณที่นี่
-// รูปแบบ: {"ชื่อที่จะแสดง", "API_KEY"}
+// รูปแบบ: {"ชื่อที่จะแสดง", "API_KEY", PROVIDER_TYPE}
 struct APIKeyConfig {
-    const char* name;
-    const char* key;
+    const char*  name;
+    const char*  key;
+    ProviderType provider;
 };
 
 const APIKeyConfig API_KEYS[] = {
-    {"Personal", "YOUR_OPENROUTER_API_KEY_1"},
-    {"Work",     "YOUR_OPENROUTER_API_KEY_2"},
-    {"Test",     "YOUR_OPENROUTER_API_KEY_3"},
+    {"Personal",  "YOUR_OPENROUTER_API_KEY_1", PROVIDER_OPENROUTER},
+    {"Work",      "YOUR_OPENROUTER_API_KEY_2", PROVIDER_OPENROUTER},
+    // {"GPT-4 Pro", "YOUR_OPENAI_API_KEY",      PROVIDER_OPENAI},
     // เพิ่ม API Keys เพิ่มเติมได้ที่นี่
-    // {"Name", "YOUR_OPENROUTER_API_KEY_HERE"},
 };
 
 const int NUM_API_KEYS = sizeof(API_KEYS) / sizeof(APIKeyConfig);

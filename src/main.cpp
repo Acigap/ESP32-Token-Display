@@ -12,6 +12,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <TFT_eSPI.h>
+#include <time.h>
 #include "config.h"
 #include "OpenRouterAPI.h"
 #include "DisplayUI.h"
@@ -49,7 +50,7 @@ void setup() {
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
     tft.setTextSize(2);
-    tft.drawString("OpenRouter Token", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 14);
+    tft.drawString("AI TOKEN MONITOR", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 14);
     tft.setTextSize(1);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("Connecting WiFi...", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 14);
@@ -132,6 +133,8 @@ void setupWiFi() {
 
     if (WiFi.status() == WL_CONNECTED) {
         wifiConnected = true;
+        // Sync time via NTP (needed for OpenAI billing usage query)
+        configTime(0, 0, "pool.ntp.org", "time.google.com");
         tft.fillScreen(TFT_BLACK);
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
         tft.setTextSize(2);
@@ -167,7 +170,7 @@ void updateTokenData() {
     tft.fillRect(SCREEN_WIDTH / 2, _fy + 1, SCREEN_WIDTH / 2 - 1, FOOTER_H - 2, TFT_BLACK);
     tft.drawString("Updating...", SCREEN_WIDTH - 8, _fy + FOOTER_H / 2);
 
-    TokenData data = api.getCredits();
+    TokenData data = api.getCredits(API_KEYS[currentKeyIndex].provider);
     ui->updateTokenDisplay(data);
     lastUpdateTime = millis();
 

@@ -6,10 +6,48 @@
 #include "config.h"
 #include "OpenRouterAPI.h"
 
-// Layout constants (landscape 320x170)
-#define HEADER_H  28
-#define FOOTER_H  24
-#define BAR_H     18
+// ── Layout constants (landscape 320 × 170) ───────────────
+#define HEADER_H   36
+#define FOOTER_H   22
+#define BAR_H      14
+#define ACCENT_W    4   // left-edge coloured strip in header
+
+// ── Extended palette (RGB565) ─────────────────────────────
+#define COL_HEADER_BG  TFT_NAVY   // deep navy header
+#define COL_LABEL      TFT_DARKGREY  // section sub-labels
+#define COL_MUTED      0x39E7     // dimmer grey — footer text
+#define COL_DIVIDER    0x2104     // near-black thin rules
+#define COL_BAR_TRACK  0x2965     // dark grey bar rail
+
+// ── Health colour: green when plenty, orange mid, red low ─
+static inline uint16_t healthColor(float pct) {
+    if (pct < 0.5f) return TFT_GREEN;
+    if (pct < 0.8f) return TFT_ORANGE;
+    return TFT_RED;
+}
+
+// ── Lighten a RGB565 colour ~25 % (per-channel, clamped) ─
+static inline uint16_t lighten565(uint16_t c) {
+    uint8_t r = min(31, ((c >> 11) & 0x1F) + 7);
+    uint8_t g = min(63, ((c >>  5) & 0x3F) + 15);
+    uint8_t b = min(31, ( c        & 0x1F) + 7);
+    return (uint16_t)((r << 11) | (g << 5) | b);
+}
+
+// ── Short display name for each provider ─────────────────
+static inline const char* providerName(ProviderType p) {
+    switch (p) {
+        case PROVIDER_OPENAI: return "OpenAI";
+        default:              return "OpenRouter";
+    }
+}
+// ── Accent color per provider (overrides health color in header label) ─
+static inline uint16_t providerColor(ProviderType p) {
+    switch (p) {
+        case PROVIDER_OPENAI: return 0x07E0;   // OpenAI green (#00FF00 approx)
+        default:              return 0xFD20;   // OpenRouter orange
+    }
+}
 
 class DisplayUI {
 private:
@@ -20,117 +58,186 @@ private:
     TokenData           currentData;
     const APIKeyConfig* keyConfigs;
 
-    // ── Header ─────────────────────────────────────────────
-    void drawHeader() {
-        tft->fillRect(0, 0, SCREEN_WIDTH, HEADER_H, TFT_NAVY);
-        tft->drawFastHLine(0, HEADER_H, SCREEN_WIDTH, TFT_DARKGREY);
-
-        String label = (keyConfigs != nullptr)
-            ? String(keyConfigs[selectedKeyIndex].name)
-            : "Key " + String(selectedKeyIndex + 1);
-        tft->setTextDatum(ML_DATUM);
-        tft->setTextColor(TFT_YELLOW, TFT_NAVY);
-        tft->setTextSize(2);
-        tft->drawString(label, 8, HEADER_H / 2);
-
-        tft->setTextDatum(MR_DATUM);
-        tft->setTextColor(TFT_LIGHTGREY, TFT_NAVY);
-        tft->setTextSize(1);
-        tft->drawString(String(selectedKeyIndex + 1) + "/" + String(numKeys),
-                        SCREEN_WIDTH - 6, HEADER_H / 2);
+    // Fraction of budget consumed (0–1, clamped)
+    float pctUsed() const {
+        if (!currentData.success || currentData.limit <= 0) return 0.0f;
+        float p = currentData.usage / currentData.limit;
+        return (p < 0.0f) ? 0.0f : (p > 1.0f) ? 1.0f : p;
     }
 
-    // ── Credits area ───────────────────────────────────────
-    void drawCredits() {
-        int y    = HEADER_H + 4;
-        int areaH = SCREEN_HEIGHT - HEADER_H - FOOTER_H - BAR_H - 14;
-        tft->fillRect(0, y, SCREEN_WIDTH, areaH, BACKGROUND_COLOR);
+    // ── Header ─────────────────────────────────────────────
+    void drawHeader() {
+        tft->fillRect(0, 0, SCREEN_WIDTH, HEADER_H, COL_HEADER_BG);
 
+        // Left accent strip — colour = credit health
+        uint16_t accent = healthColor(pctUsed());
+        tft->fillRect(0, 0, ACCENT_W, HEADER_H, accent);
+        tft->fillRect(ACCENT_W, 0, 1, HEADER_H, COL_DIVIDER);
+
+        const int textX = ACCENT_W + 8;
+
+        // ── Top micro-row: "AI TOKEN MONITOR" ─────────────
+        tft->setTextDatum(ML_DATUM);
+        tft->setTextColor(COL_LABEL, COL_HEADER_BG);
+        tft->setTextSize(1);
+        tft->drawString("AI TOKEN MONITOR", textX, 9);
+
+        // ── Bottom row: provider badge · key name ──────────
+        ProviderType prov = (keyConfigs != nullptr)
+            ? keyConfigs[selectedKeyIndex].provider
+            : PROVIDER_OPENROUTER;
+        uint16_t pColor = providerColor(prov);
+        String provStr = String(providerName(prov));
+        String keyStr  = (keyConfigs != nullptr)
+            ? (" \xB7 " + String(keyConfigs[selectedKeyIndex].name))
+            : (" \xB7 Key " + String(selectedKeyIndex + 1));
+
+        tft->setTextDatum(ML_DATUM);
+        tft->setTextColor(pColor, COL_HEADER_BG);
+        tft->setTextSize(1);
+        tft->drawString(provStr, textX, 25);
+
+        // Measure provider text width to position key name after it
+        int provW = tft->textWidth(provStr, 1);
+        tft->setTextColor(TFT_WHITE, COL_HEADER_BG);
+        tft->drawString(keyStr, textX + provW, 25);
+
+        // Key counter (top-right)
+        tft->setTextDatum(MR_DATUM);
+        tft->setTextColor(COL_MUTED, COL_HEADER_BG);
+        tft->drawString(String(selectedKeyIndex + 1) + "/" + String(numKeys),
+                        SCREEN_WIDTH - 6, 25);
+
+        // Bottom rule
+        tft->drawFastHLine(0, HEADER_H - 1, SCREEN_WIDTH, COL_DIVIDER);
+    }
+
+    // ── Credits + stats area ───────────────────────────────
+    void drawCredits() {
+        const int y0    = HEADER_H;
+        const int areaH = SCREEN_HEIGHT - HEADER_H - FOOTER_H - BAR_H - 8;
+        tft->fillRect(0, y0, SCREEN_WIDTH, areaH, BACKGROUND_COLOR);
+
+        // ── Error state ───────────────────────────────────
         if (!currentData.success) {
             tft->setTextDatum(MC_DATUM);
             tft->setTextColor(TFT_RED, BACKGROUND_COLOR);
             tft->setTextSize(2);
-            tft->drawString("Fetch Error", SCREEN_WIDTH / 2, y + 22);
+            tft->drawString("Fetch Error", SCREEN_WIDTH / 2, y0 + 28);
             tft->setTextSize(1);
-            tft->setTextColor(TFT_WHITE, BACKGROUND_COLOR);
-            tft->drawString(currentData.error.substring(0, 42),
-                            SCREEN_WIDTH / 2, y + 44);
+            tft->setTextColor(COL_LABEL, BACKGROUND_COLOR);
+            tft->drawString(currentData.error.substring(0, 38),
+                            SCREEN_WIDTH / 2, y0 + 52);
             return;
         }
 
-        // "CREDITS REMAINING" label
+        float    pct  = pctUsed();
+        uint16_t col  = healthColor(pct);
+
+        // Remaining = limit − usage (or raw credits when no limit)
+        float remaining = (currentData.limit > 0)
+                        ? (currentData.limit - currentData.usage)
+                        : currentData.credits;
+        if (remaining < 0.0f) remaining = 0.0f;
+
+        // ── "CREDITS REMAINING" label ─────────────────────
         tft->setTextDatum(ML_DATUM);
-        tft->setTextColor(TFT_DARKGREY, BACKGROUND_COLOR);
+        tft->setTextColor(COL_LABEL, BACKGROUND_COLOR);
         tft->setTextSize(1);
-        tft->drawString("CREDITS REMAINING", 10, y + 4);
+        tft->drawString("CREDITS REMAINING", ACCENT_W + 6, y0 + 8);
 
-        // Big credit number
-        tft->setTextColor(TFT_GREEN, BACKGROUND_COLOR);
-        tft->setTextSize(4);
+        // ── Large value (health colour) ───────────────────
+        tft->setTextColor(col, BACKGROUND_COLOR);
+        tft->setTextSize(3);
+        tft->drawString("$" + String(remaining, 4), ACCENT_W + 6, y0 + 30);
+
+        // ── Two-column stats row ──────────────────────────
+        const int statsY = y0 + 64;
+        const int midX   = SCREEN_WIDTH / 2;
+
+        // Thin vertical divider between columns
+        tft->drawFastVLine(midX, statsY - 6, 30, COL_DIVIDER);
+
+        // USED — left
+        tft->setTextSize(1);
+        tft->setTextColor(COL_LABEL, BACKGROUND_COLOR);
         tft->setTextDatum(ML_DATUM);
-        tft->drawString("$" + String(currentData.credits, 4), 10, y + 24);
-
-        // Usage  |  Limit
+        tft->drawString("USED", ACCENT_W + 8, statsY);
         tft->setTextSize(2);
-        tft->setTextColor(TFT_LIGHTGREY, BACKGROUND_COLOR);
-        tft->setTextDatum(ML_DATUM);
-        tft->drawString("Token used: $" + String(currentData.usage, 4), 10, y + 60);
-        if (currentData.limit > 0) {
-            tft->setTextDatum(ML_DATUM);
-            tft->drawString("Token limit: $" + String(currentData.limit, 2),
-                            10, y + 76);
-        }
+        tft->setTextColor(TFT_WHITE, BACKGROUND_COLOR);
+        tft->drawString("$" + String(currentData.usage, 4), ACCENT_W + 8, statsY + 13);
+
+        // LIMIT — right
+        tft->setTextSize(1);
+        tft->setTextColor(COL_LABEL, BACKGROUND_COLOR);
+        tft->drawString("LIMIT", midX + 8, statsY);
+        tft->setTextSize(2);
+        tft->setTextColor(TFT_WHITE, BACKGROUND_COLOR);
+        if (currentData.limit > 0)
+            tft->drawString("$" + String(currentData.limit, 2), midX + 8, statsY + 13);
+        else
+            tft->drawString("No limit", midX + 8, statsY + 13);
     }
 
     // ── Progress bar ───────────────────────────────────────
     void drawProgressBar() {
-        int barY = SCREEN_HEIGHT - FOOTER_H - BAR_H - 4;
-        tft->fillRect(0, barY - 2, SCREEN_WIDTH, BAR_H + 6, BACKGROUND_COLOR);
+        const int barY = SCREEN_HEIGHT - FOOTER_H - BAR_H - 6;
+        tft->fillRect(0, barY - 4, SCREEN_WIDTH, BAR_H + 8, BACKGROUND_COLOR);
 
         if (!currentData.success || currentData.limit <= 0) return;
 
-        const int barX = 10;
-        const int barW = SCREEN_WIDTH - 20;
+        const float    pct   = pctUsed();
+        const uint16_t col   = healthColor(pct);
+        const int      barX  = ACCENT_W + 8;
+        const int      barW  = SCREEN_WIDTH - barX - 8;
+        const int      fillW = (int)(pct * barW);
 
-        float pct = currentData.usage / currentData.limit;  // usage %
-        if (pct < 0.0f) pct = 0.0f;
-        if (pct > 1.0f) pct = 1.0f;
-        int fillW = (int)(pct * barW);
+        // Rail
+        tft->fillRoundRect(barX, barY, barW, BAR_H, 4, COL_BAR_TRACK);
+        // Inner top shadow on rail (sunken look)
+        tft->drawFastHLine(barX + 4, barY + 1, barW - 8, COL_DIVIDER);
 
-        // Track
-        tft->fillRoundRect(barX, barY, barW, BAR_H, 5, TFT_DARKGREY);
-
-        // Fill — colour by usage level (high usage = red)
-        uint16_t fillColor = (pct > 0.8f) ? TFT_RED
-                           : (pct > 0.5f) ? TFT_ORANGE
-                                          : TFT_GREEN;
+        // Coloured fill
         if (fillW > 0) {
-            tft->fillRoundRect(barX, barY, fillW, BAR_H, 5, fillColor);
+            tft->fillRoundRect(barX, barY, fillW, BAR_H, 4, col);
+            // Shimmer: 1 px lighter line at top of fill
+            if (fillW > 8)
+                tft->drawFastHLine(barX + 4, barY + 1, fillW - 8, lighten565(col));
         }
 
-        // Percentage label
+        // Percentage — centred on bar, white
         tft->setTextDatum(MC_DATUM);
         tft->setTextSize(1);
-        tft->setTextColor(TFT_WHITE, fillW >= barW / 2 ? fillColor : TFT_DARKGREY);
+        bool textOnFill = (barW / 2 < fillW);
+        tft->setTextColor(TFT_WHITE, textOnFill ? col : COL_BAR_TRACK);
         tft->drawString(String((int)(pct * 100)) + "%",
                         barX + barW / 2, barY + BAR_H / 2);
     }
 
     // ── Footer ─────────────────────────────────────────────
     void drawFooter() {
-        int y = SCREEN_HEIGHT - FOOTER_H;
+        const int y = SCREEN_HEIGHT - FOOTER_H;
         tft->fillRect(0, y, SCREEN_WIDTH, FOOTER_H, TFT_BLACK);
-        tft->drawFastHLine(0, y, SCREEN_WIDTH, TFT_DARKGREY);
+        tft->drawFastHLine(0, y, SCREEN_WIDTH, COL_DIVIDER);
 
         tft->setTextSize(1);
-        tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft->setTextColor(COL_MUTED, TFT_BLACK);
 
+        // Left: bullet dot + hint
+        tft->fillCircle(ACCENT_W + 4, y + FOOTER_H / 2, 2, COL_MUTED);
         tft->setTextDatum(ML_DATUM);
-        tft->drawString("BOOT = next key", 8, y + FOOTER_H / 2);
+        tft->drawString("BOOT = next key", ACCENT_W + 10, y + FOOTER_H / 2);
 
-        tft->setTextDatum(MR_DATUM);
+        // Right: status dot (green=OK, red=error) + uptime
+        tft->fillCircle(SCREEN_WIDTH - 7, y + FOOTER_H / 2, 3,
+                        currentData.success ? TFT_GREEN : TFT_RED);
+
         unsigned long sec = millis() / 1000;
-        tft->drawString("up " + String(sec) + "s", SCREEN_WIDTH - 8, y + FOOTER_H / 2);
+        String upStr = (sec < 60)   ? String(sec) + "s"
+                     : (sec < 3600) ? String(sec / 60) + "m"
+                                    : String(sec / 3600) + "h";
+        tft->setTextDatum(MR_DATUM);
+        tft->drawString("up " + upStr, SCREEN_WIDTH - 14, y + FOOTER_H / 2);
     }
 
 public:
@@ -140,12 +247,10 @@ public:
         currentData = {};
     }
 
-    void setAPIKeyLabels(const APIKeyConfig* keys) {
-        keyConfigs = keys;
-    }
+    void setAPIKeyLabels(const APIKeyConfig* keys) { keyConfigs = keys; }
 
     void init() {
-        tft->setRotation(1);   // Landscape
+        tft->setRotation(1);
         tft->fillScreen(BACKGROUND_COLOR);
         drawUI();
     }
@@ -161,7 +266,6 @@ public:
         needsRedraw = false;
     }
 
-    // Partial redraw after API fetch (header stays)
     void updateTokenDisplay(const TokenData& data) {
         currentData = data;
         drawCredits();
@@ -171,7 +275,6 @@ public:
 
     int getSelectedKeyIndex() { return selectedKeyIndex; }
 
-    // Advance to next API key (wraps around)
     void nextKey() {
         selectedKeyIndex = (selectedKeyIndex + 1) % numKeys;
         needsRedraw = true;
