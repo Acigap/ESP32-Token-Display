@@ -1,0 +1,63 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ========================================
+// WiFi Configuration
+// ========================================
+// ใส่ชื่อและรหัสผ่าน WiFi ของคุณที่นี่
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+// ========================================
+// OpenRouter API Configuration
+// ========================================
+#define OPENROUTER_API_URL "https://openrouter.ai/api/v1/auth/key"
+
+// ========================================
+// API Keys Configuration
+// ========================================
+// เพิ่ม API Keys ของคุณที่นี่
+// รูปแบบ: {"ชื่อที่จะแสดง", "API_KEY"}
+struct APIKeyConfig {
+    const char* name;
+    const char* key;
+};
+
+const APIKeyConfig API_KEYS[] = {
+    {"Personal", "YOUR_OPENROUTER_API_KEY_1"},
+    {"Work",     "YOUR_OPENROUTER_API_KEY_2"},
+    {"Test",     "YOUR_OPENROUTER_API_KEY_3"},
+    // เพิ่ม API Keys เพิ่มเติมได้ที่นี่
+    // {"Name", "YOUR_OPENROUTER_API_KEY_HERE"},
+};
+
+const int NUM_API_KEYS = sizeof(API_KEYS) / sizeof(APIKeyConfig);
+
+// ========================================
+// Display Configuration (landscape 320x170)
+// ========================================
+// ST7789 1.9" 170x320 ใช้ใน landscape mode = 320x170
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 170
+
+// สีของ UI (ใช้ TFT_eSPI color constants)
+#define BACKGROUND_COLOR TFT_BLACK
+#define TEXT_COLOR TFT_WHITE
+#define HIGHLIGHT_COLOR TFT_YELLOW
+
+// ========================================
+// Button Configuration
+// ========================================
+// BOOT button = GPIO 0 (built-in, active LOW)
+// กดเพื่อสลับ API Key
+#define BUTTON_PIN 0
+
+// ========================================
+// Update Configuration
+// ========================================
+// ความถี่ในการอัพเดทอัตโนมัติ (milliseconds)
+// 30000 = 30 วินาที, 60000 = 1 นาที
+#define UPDATE_INTERVAL 30000
+
+#endif // CONFIG_H
+
