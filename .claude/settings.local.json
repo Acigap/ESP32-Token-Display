@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:PATH -split \";\" | Where-Object { $_ -match \"python|conda|anaconda|pyenv\" })",
+      "PowerShell($content = Get-Content \"e:\\\\Gap_code\\\\TokenDisply\\\\poc\\\\poc_claude_api.ps1\" -Raw -Encoding UTF8; Invoke-Expression $content)",
+      "PowerShell($env:ANTHROPIC_API_KEY)",
+      "Bash(py --version)",
+      "Bash(python -c \"import requests\")",
+      "Bash(python poc_claude_api.py)",
+      "Bash(python -m pip install requests)",
+      "Bash(pio run *)",
+      "PowerShell(cd \"e:\\\\Gap_code\\\\TokenDisply\"; & \"$env:USERPROFILE\\\\.platformio\\\\penv\\\\Scripts\\\\pio.exe\" run 2>&1)"
+    ]
+  }
+}

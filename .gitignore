@@ -13,6 +13,8 @@
 # NEVER commit actual WiFi credentials or API keys.
 # Copy config.h.example → config.h and fill in your values.
 include/config.h
+.env
+poc/.env
 
 # ── OS / Toolchain noise ──────────────────────────────────
 .DS_Store

@@ -15,11 +15,13 @@
 #include <time.h>
 #include "config.h"
 #include "OpenRouterAPI.h"
+#include "AnthropicAPI.h"
 #include "DisplayUI.h"
 
 // Global objects
 TFT_eSPI tft = TFT_eSPI();
-OpenRouterAPI api;
+OpenRouterAPI  api;
+AnthropicAPI   anthApi;
 DisplayUI* ui;
 
 // State
@@ -61,8 +63,11 @@ void setup() {
     setupWiFi();
 
     if (NUM_API_KEYS > 0) {
-        api.setAPIKey(API_KEYS[0].key);
         currentKeyIndex = 0;
+        if (API_KEYS[0].isAnthropic)
+            anthApi.setAPIKey(API_KEYS[0].key);
+        else
+            api.setAPIKey(API_KEYS[0].key);
     }
 
     ui->init();
@@ -103,7 +108,10 @@ void handleButton() {
             lastButtonTime = now;
             ui->nextKey();
             currentKeyIndex = ui->getSelectedKeyIndex();
-            api.setAPIKey(API_KEYS[currentKeyIndex].key);
+            if (API_KEYS[currentKeyIndex].isAnthropic)
+                anthApi.setAPIKey(API_KEYS[currentKeyIndex].key);
+            else
+                api.setAPIKey(API_KEYS[currentKeyIndex].key);
             Serial.printf("Switched to key: %s\n", API_KEYS[currentKeyIndex].name);
         }
     }
@@ -170,13 +178,21 @@ void updateTokenData() {
     tft.fillRect(SCREEN_WIDTH / 2, _fy + 1, SCREEN_WIDTH / 2 - 1, FOOTER_H - 2, TFT_BLACK);
     tft.drawString("Updating...", SCREEN_WIDTH - 8, _fy + FOOTER_H / 2);
 
-    TokenData data = api.getCredits();
+    TokenData data = API_KEYS[currentKeyIndex].isAnthropic
+                   ? anthApi.getRateLimits()
+                   : api.getCredits();
     ui->updateTokenDisplay(data);
     lastUpdateTime = millis();
 
     if (data.success) {
-        Serial.printf("Credits: %.4f  Used: %.4f  Limit: %.2f\n",
-                      data.credits, data.usage, data.limit);
+        if (data.isAnthropicMode)
+            Serial.printf("Tokens: %d/%d  Req: %d/%d  Reset: %s\n",
+                          data.tok_remaining, data.tok_limit,
+                          data.req_remaining, data.req_limit,
+                          data.reset_in.c_str());
+        else
+            Serial.printf("Credits: %.4f  Used: %.4f  Limit: %.2f\n",
+                          data.credits, data.usage, data.limit);
     } else {
         Serial.printf("Error: %s\n", data.error.c_str());
     }

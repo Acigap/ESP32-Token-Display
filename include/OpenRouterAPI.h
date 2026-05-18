@@ -6,12 +6,27 @@
 #include <ArduinoJson.h>
 
 struct TokenData {
-    float usage;
-    float limit;
-    float credits;
-    bool isLimited;
+    // ── OpenRouter mode ──────────────────────────────────
+    float  usage    = 0;
+    float  limit    = 0;
+    float  credits  = 0;
+    bool   isLimited = false;
     String rateLimit;
-    bool success;
+
+    // ── Anthropic rate-limit mode ────────────────────────
+    bool   isAnthropicMode = false;
+    int    req_limit     = 0;
+    int    req_remaining = 0;
+    int    tok_limit     = 0;
+    int    tok_remaining = 0;
+    int    in_limit      = 0;
+    int    in_remaining  = 0;
+    int    out_limit     = 0;
+    int    out_remaining = 0;
+    String reset_in;            // "45s" or "1m 23s"
+
+    // ── Common ───────────────────────────────────────────
+    bool   success = false;
     String error;
 };
 
@@ -22,7 +37,7 @@ private:
 
     // ── OpenRouter  ────────────────────────────────────────
     TokenData getOpenRouterCredits() {
-        TokenData data = {0};
+        TokenData data;
         if (WiFi.status() != WL_CONNECTED) { data.error = "WiFi not connected"; return data; }
         if (apiKey.length() == 0)          { data.error = "No API key set";      return data; }
 
