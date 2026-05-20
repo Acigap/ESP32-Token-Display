@@ -106,7 +106,7 @@ export class ConfigPanel {
         if (!root) { return; }
         try {
             ConfigManager.save(root, config);
-            this._panel.webview.postMessage({ type: 'saveResult', success: true, message: 'Config saved — config.h and poc/.env updated.' });
+            this._panel.webview.postMessage({ type: 'saveResult', success: true, message: 'Config saved — config.h and server/.env updated.' });
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
             this._panel.webview.postMessage({ type: 'saveResult', success: false, message: msg });
@@ -363,7 +363,7 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
         <div class="info">
           <strong>ℹ️ Relay Server</strong><br>
           A small server running on this PC fetches your Claude.ai usage stats for the ESP32.<br>
-          Values are saved to <code>poc/.env</code> only — never uploaded anywhere.<br><br>
+          Values are saved to <code>server/.env</code> only — never uploaded anywhere.<br><br>
           <strong>How to get Session Key and Org ID:</strong><br>
           1. Open Edge or Chrome and go to <code>claude.ai</code> (make sure you are logged in)<br>
           2. Press <kbd>F12</kbd> → <em>Application</em> tab → <em>Cookies</em> → <code>.claude.ai</code><br>
