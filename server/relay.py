@@ -35,13 +35,9 @@ def load_env():
 
 load_env()
 
-SESSION   = os.environ.get("CLAUDEAI_SESSION", "")
-CF_CLR    = os.environ.get("CF_CLEARANCE", "")
-CF_BM     = os.environ.get("CF_BM", "")
-SSID      = os.environ.get("SSID", "")
-DEV_ID    = os.environ.get("ANTHROPIC_DEVICE_ID", "")
-ORG_ID    = os.environ.get("LASTACTIVE_ORG", "")
-PORT      = int(os.environ.get("RELAY_PORT", "8765"))
+SESSION = os.environ.get("CLAUDEAI_SESSION", "")
+ORG_ID  = os.environ.get("LASTACTIVE_ORG", "")
+PORT    = int(os.environ.get("RELAY_PORT", "8765"))
 
 if not SESSION or not ORG_ID:
     print("ERROR: CLAUDEAI_SESSION and LASTACTIVE_ORG must be set in .env")
@@ -49,14 +45,10 @@ if not SESSION or not ORG_ID:
 
 from curl_cffi import requests as creq
 
-COOKIES = {k: v for k, v in {
-    "sessionKey":          SESSION,
-    "cf_clearance":        CF_CLR,
-    "__cf_bm":             CF_BM,
-    "__ssid":              SSID,
-    "lastActiveOrg":       ORG_ID,
-    "anthropic-device-id": DEV_ID,
-}.items() if v}
+COOKIES = {
+    "sessionKey":    SESSION,
+    "lastActiveOrg": ORG_ID,
+}
 
 HEADERS = {
     "Accept":             "application/json",

@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include "config.h"
 #include "OpenRouterAPI.h"
+#include "RelayAPI.h"
 
 // ── Layout (landscape 320 × 170) ─────────────────────────
 #define HEADER_H   28
@@ -61,8 +62,10 @@ private:
     TFT_eSPI*           tft;
     int                 selectedKeyIndex;
     int                 numKeys;
+    int                 _page;       // 0 = API key page, 1 = Relay page
     bool                needsRedraw;
     TokenData           currentData;
+    RelayData           _relayData;
     const APIKeyConfig* keyConfigs;
 
     // ── pctUsed — works for both modes ────────────────────
@@ -336,6 +339,114 @@ private:
         drawBar(barX, barY, barW, BAR_H, pct, col);
     }
 
+    // ══════════════════════════════════════════════════════
+    //  RELAY: Claude.ai session usage
+    // ══════════════════════════════════════════════════════
+    void drawRelayHeader() {
+        const uint16_t accent = 0x07FF; // cyan
+        const uint16_t bgCol  = 0x0230; // dark cyan tint
+        tft->fillRect(0, 0, SCREEN_WIDTH, HEADER_H, bgCol);
+        tft->fillRect(0, 0, ACCENT_W, HEADER_H, accent);
+        tft->fillRect(ACCENT_W, 0, 1, HEADER_H, COL_DIVIDER);
+
+        const int cy = HEADER_H / 2;
+        int x = ACCENT_W + 8;
+
+        tft->setTextSize(2);
+        tft->setTextDatum(ML_DATUM);
+        tft->setTextColor(accent, bgCol);
+        tft->drawString("Token", x, cy);
+        x += tft->textWidth("Token") * 2; // size-2 width
+        tft->setTextColor(TFT_WHITE, bgCol);
+        tft->drawString(" \xB7 Claude.ai", x, cy);
+
+        tft->setTextDatum(MR_DATUM);
+        tft->setTextSize(1);
+        tft->setTextColor(COL_MUTED, bgCol);
+        tft->drawString("relay", SCREEN_WIDTH - 4, cy);
+
+        tft->drawFastHLine(0, HEADER_H - 1, SCREEN_WIDTH, COL_DIVIDER);
+    }
+
+    void drawRelayPage() {
+        const int CY = HEADER_H;        // 28
+        const int CW = SCREEN_WIDTH;    // 320
+        const int CH = SCREEN_HEIGHT - HEADER_H - FOOTER_H; // 120
+        const int BX = ACCENT_W + 8;   // bar/label left edge
+        const int BW = CW - BX - 8;    // bar width
+
+        tft->fillRect(0, CY, CW, CH, BACKGROUND_COLOR);
+
+        if (!_relayData.ok) {
+            tft->setTextDatum(MC_DATUM);
+            tft->setTextColor(COL_MUTED, BACKGROUND_COLOR);
+            tft->setTextSize(2);
+            tft->drawString("Relay offline", CW / 2, CY + CH / 2 - 10);
+            tft->setTextSize(1);
+            tft->setTextColor(COL_LABEL, BACKGROUND_COLOR);
+            String msg = _relayData.error.length()
+                       ? _relayData.error
+                       : "Start relay: python poc_claudeai_relay.py";
+            tft->drawString(msg.substring(0, 42), CW / 2, CY + CH / 2 + 10);
+            return;
+        }
+
+        // ── Session (top half) ────────────────────────────
+        const int S1 = CY + 8;
+        float sPct = constrain(_relayData.sessionPct / 100.0f, 0.0f, 1.0f);
+        uint16_t sCol = healthColor(sPct);
+
+        tft->setTextSize(1);
+        tft->setTextDatum(ML_DATUM);
+        tft->setTextColor(sCol, BACKGROUND_COLOR);
+        tft->drawString("SESSION  (5-hour)", BX, S1);
+        tft->setTextDatum(MR_DATUM);
+        tft->setTextColor(COL_MUTED, BACKGROUND_COLOR);
+        tft->drawString("resets " + _relayData.sessionReset, CW - 6, S1);
+
+        drawBar(BX, S1 + 12, BW, 18, sPct, sCol);
+
+        // ── Divider ───────────────────────────────────────
+        tft->drawFastHLine(BX, CY + 52, CW - BX - 6, COL_DIVIDER);
+
+        // ── Weekly (bottom half) ──────────────────────────
+        const int S2 = CY + 62;
+        float wPct = constrain(_relayData.weeklyPct / 100.0f, 0.0f, 1.0f);
+        uint16_t wCol = healthColor(wPct);
+
+        tft->setTextSize(1);
+        tft->setTextDatum(ML_DATUM);
+        tft->setTextColor(wCol, BACKGROUND_COLOR);
+        tft->drawString("WEEKLY  (7-day)", BX, S2);
+        tft->setTextDatum(MR_DATUM);
+        tft->setTextColor(COL_MUTED, BACKGROUND_COLOR);
+        tft->drawString("resets " + _relayData.weeklyReset, CW - 6, S2);
+
+        drawBar(BX, S2 + 12, BW, 18, wPct, wCol);
+    }
+
+    void drawRelayFooter() {
+        const int y = SCREEN_HEIGHT - FOOTER_H;
+        tft->fillRect(0, y, SCREEN_WIDTH, FOOTER_H, TFT_BLACK);
+        tft->drawFastHLine(0, y, SCREEN_WIDTH, COL_DIVIDER);
+
+        tft->setTextSize(1);
+        tft->setTextColor(COL_MUTED, TFT_BLACK);
+        tft->fillCircle(ACCENT_W + 4, y + FOOTER_H / 2, 2, COL_MUTED);
+        tft->setTextDatum(ML_DATUM);
+        tft->drawString("BOOT = next", ACCENT_W + 10, y + FOOTER_H / 2);
+
+        tft->fillCircle(SCREEN_WIDTH - 7, y + FOOTER_H / 2, 3,
+                        _relayData.ok ? TFT_GREEN : TFT_RED);
+
+        unsigned long sec = millis() / 1000;
+        String upStr = (sec < 60)   ? String(sec) + "s"
+                     : (sec < 3600) ? String(sec / 60) + "m"
+                                    : String(sec / 3600) + "h";
+        tft->setTextDatum(MR_DATUM);
+        tft->drawString("up " + upStr, SCREEN_WIDTH - 14, y + FOOTER_H / 2);
+    }
+
     // ── Footer ─────────────────────────────────────────────
     void drawFooter() {
         const int y = SCREEN_HEIGHT - FOOTER_H;
@@ -362,8 +473,9 @@ private:
 public:
     DisplayUI(TFT_eSPI* display, int numApiKeys)
         : tft(display), numKeys(numApiKeys), selectedKeyIndex(0),
-          needsRedraw(true), keyConfigs(nullptr) {
+          _page(0), needsRedraw(true), keyConfigs(nullptr) {
         currentData = {};
+        _relayData  = {};
     }
 
     void setAPIKeyLabels(const APIKeyConfig* keys) { keyConfigs = keys; }
@@ -378,18 +490,25 @@ public:
     void requestRedraw() { needsRedraw = true; }
 
     void drawUI() {
-        drawHeader();
-        if (currentData.isAnthropicMode)
-            drawRateLimitUI();
-        else {
-            drawCredits();
-            drawProgressBar();
+        if (_page == 1) {
+            drawRelayHeader();
+            drawRelayPage();
+            drawRelayFooter();
+        } else {
+            drawHeader();
+            if (currentData.isAnthropicMode)
+                drawRateLimitUI();
+            else {
+                drawCredits();
+                drawProgressBar();
+            }
+            drawFooter();
         }
-        drawFooter();
         needsRedraw = false;
     }
 
     void updateTokenDisplay(const TokenData& data) {
+        if (_page == 1) return;  // ignore API updates while on relay page
         currentData = data;
         tft->fillRect(0, HEADER_H, SCREEN_WIDTH,
                       SCREEN_HEIGHT - HEADER_H - FOOTER_H, BACKGROUND_COLOR);
@@ -403,10 +522,35 @@ public:
         drawFooter();
     }
 
+    void updateRelayDisplay(const RelayData& d) {
+        _relayData = d;
+        if (_page == 1) {
+            drawRelayPage();
+            drawRelayFooter();
+        }
+    }
+
+    void goToRelayPage() {
+        _page = 1;
+        needsRedraw = true;
+    }
+
+    bool isRelayPage() { return _page == 1; }
+
     int getSelectedKeyIndex() { return selectedKeyIndex; }
 
+    // Cycle: key0 → key1 → ... → keyN-1 → relay → key0
     void nextKey() {
-        selectedKeyIndex = (selectedKeyIndex + 1) % numKeys;
+        if (_page == 1) {
+            _page = 0;
+            selectedKeyIndex = 0;
+        } else {
+            selectedKeyIndex++;
+            if (selectedKeyIndex >= numKeys) {
+                selectedKeyIndex = 0;
+                _page = 1;
+            }
+        }
         needsRedraw = true;
     }
 };

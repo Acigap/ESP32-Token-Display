@@ -1,0 +1,87 @@
+{
+  "name": "esp32-token-display",
+  "displayName": "ESP32 Token Display",
+  "description": "Configure WiFi, API keys, Claude.ai session, build & flash ESP32 Token Display",
+  "version": "1.0.0",
+  "publisher": "gapcode",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "esp32-token-display",
+          "title": "ESP32 Token Display",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "esp32-token-display": [
+        {
+          "id": "esp32td.sidebar",
+          "name": "ESP32 Token Display"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "esp32td.sidebar",
+        "contents": "Configure WiFi, API keys and Claude.ai session for your ESP32 Token Display.\n\n[$(settings-gear) Open Config Panel](command:esp32td.openConfig)\n\n---\n\n[$(play) Start Relay Server](command:esp32td.startRelay)\n[$(debug-stop) Stop Relay Server](command:esp32td.stopRelay)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "esp32td.openConfig",
+        "title": "Open Config Panel",
+        "category": "ESP32 Token Display",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "esp32td.startRelay",
+        "title": "Start Relay Server",
+        "category": "ESP32 Token Display"
+      },
+      {
+        "command": "esp32td.stopRelay",
+        "title": "Stop Relay Server",
+        "category": "ESP32 Token Display"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "esp32td.openConfig"
+        },
+        {
+          "command": "esp32td.startRelay"
+        },
+        {
+          "command": "esp32td.stopRelay"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "build": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "watch": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
+    "vscode:prepublish": "npm run build -- --minify",
+    "package": "vsce package --no-rewrite-relative-links --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  }
+}

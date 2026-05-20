@@ -16,18 +16,22 @@
 #include "config.h"
 #include "OpenRouterAPI.h"
 #include "AnthropicAPI.h"
+#include "RelayAPI.h"
 #include "DisplayUI.h"
 
 // Global objects
 TFT_eSPI tft = TFT_eSPI();
 OpenRouterAPI  api;
 AnthropicAPI   anthApi;
+RelayAPI       relayApi;
 DisplayUI* ui;
 
 // State
 unsigned long lastUpdateTime = 0;
-bool wifiConnected = false;
-int currentKeyIndex = 0;
+unsigned long lastRelayTime  = 0;
+bool wifiConnected   = false;
+bool relayWasOnline  = false;
+int currentKeyIndex  = 0;
 
 // Button debounce
 unsigned long lastButtonTime = 0;
@@ -36,6 +40,7 @@ const unsigned long DEBOUNCE_MS = 300;
 // Forward declarations
 void setupWiFi();
 void updateTokenData();
+void updateRelayData();
 void handleButton();
 
 // ── setup ─────────────────────────────────────────────────
@@ -60,6 +65,8 @@ void setup() {
     ui = new DisplayUI(&tft, NUM_API_KEYS);
     ui->setAPIKeyLabels(API_KEYS);
 
+    relayApi.setUrl(RELAY_HOST, RELAY_PORT);
+
     setupWiFi();
 
     if (NUM_API_KEYS > 0) {
@@ -73,6 +80,7 @@ void setup() {
     ui->init();
 
     if (wifiConnected) {
+        updateRelayData();
         updateTokenData();
     }
 }
@@ -89,12 +97,17 @@ void loop() {
     if (ui->needsUpdate()) {
         ui->drawUI();
         if (wifiConnected) {
-            updateTokenData();
+            if (ui->isRelayPage()) updateRelayData();
+            else                   updateTokenData();
         }
     }
 
     if (wifiConnected && (millis() - lastUpdateTime > UPDATE_INTERVAL)) {
         updateTokenData();
+    }
+
+    if (wifiConnected && (millis() - lastRelayTime > UPDATE_INTERVAL)) {
+        updateRelayData();
     }
 
     delay(50);
@@ -107,12 +120,16 @@ void handleButton() {
         if (now - lastButtonTime > DEBOUNCE_MS) {
             lastButtonTime = now;
             ui->nextKey();
-            currentKeyIndex = ui->getSelectedKeyIndex();
-            if (API_KEYS[currentKeyIndex].isAnthropic)
-                anthApi.setAPIKey(API_KEYS[currentKeyIndex].key);
-            else
-                api.setAPIKey(API_KEYS[currentKeyIndex].key);
-            Serial.printf("Switched to key: %s\n", API_KEYS[currentKeyIndex].name);
+            if (!ui->isRelayPage()) {
+                currentKeyIndex = ui->getSelectedKeyIndex();
+                if (API_KEYS[currentKeyIndex].isAnthropic)
+                    anthApi.setAPIKey(API_KEYS[currentKeyIndex].key);
+                else
+                    api.setAPIKey(API_KEYS[currentKeyIndex].key);
+                Serial.printf("Switched to key: %s\n", API_KEYS[currentKeyIndex].name);
+            } else {
+                Serial.println("Switched to relay page");
+            }
         }
     }
 }
@@ -162,6 +179,29 @@ void setupWiFi() {
         tft.drawString("Check credentials", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 10);
         delay(2000);
     }
+}
+
+// ── updateRelayData ───────────────────────────────────────
+void updateRelayData() {
+    if (!wifiConnected) return;
+
+    RelayData rd = relayApi.fetch();
+    lastRelayTime = millis();
+
+    // Auto-switch to relay page when server first comes online
+    if (rd.ok && !relayWasOnline) {
+        Serial.println("Relay server detected — switching to relay page");
+        ui->goToRelayPage();
+    }
+    relayWasOnline = rd.ok;
+
+    ui->updateRelayDisplay(rd);
+
+    if (rd.ok)
+        Serial.printf("Relay OK  session=%.0f%%  weekly=%.0f%%\n",
+                      rd.sessionPct, rd.weeklyPct);
+    else
+        Serial.printf("Relay: %s\n", rd.error.c_str());
 }
 
 // ── updateTokenData ───────────────────────────────────────

@@ -9,7 +9,10 @@
       "Bash(python poc_claude_api.py)",
       "Bash(python -m pip install requests)",
       "Bash(pio run *)",
-      "PowerShell(cd \"e:\\\\Gap_code\\\\TokenDisply\"; & \"$env:USERPROFILE\\\\.platformio\\\\penv\\\\Scripts\\\\pio.exe\" run 2>&1)"
+      "PowerShell(cd \"e:\\\\Gap_code\\\\TokenDisply\"; & \"$env:USERPROFILE\\\\.platformio\\\\penv\\\\Scripts\\\\pio.exe\" run 2>&1)",
+      "Bash(python poc/get_claude_cookies.py)",
+      "Bash(tasklist /FI \"IMAGENAME eq msedge.exe\" /NH)",
+      "Bash(tasklist /FI \"IMAGENAME eq chrome.exe\" /NH)"
     ]
   }
 }
