@@ -3,6 +3,8 @@
 แสดงผล API usage จาก **OpenRouter**, **Anthropic**, และ **Claude.ai** บน ESP32 ที่มีจอ ST7789 1.9" ในตัว  
 กด BOOT button เพื่อสลับหน้าแสดงผล
 
+![ESP32 Token Display](image/marketing-banner-esp32-token-display.jpg)
+
 ---
 
 ## Features
@@ -73,12 +75,18 @@ BOOT button วนหน้าจอตามลำดับ: **Key 1 → Key 2 
 ### OpenRouter (credits)
 แสดง Credits remaining, Used, Limit พร้อม progress bar
 
+![OpenRouter Display](image/hardware-display-openrouter-homeai-lng.jpg)
+
 ### Anthropic (rate limits)
 แสดง Tokens/min, Requests/min, Input tokens, Output tokens พร้อม reset timer
+
+![Anthropic Display](image/hardware-display-anthropic-rate-limits.jpg)
 
 ### Claude.ai Relay
 แสดง Session usage (5 ชั่วโมง) และ Weekly usage (7 วัน) พร้อมเวลา reset  
 หน้าจะ switch อัตโนมัติเมื่อ relay server เพิ่งเริ่มทำงาน
+
+![Claude.ai Display](image/hardware-display-claudeai-usage.jpg)
 
 ---
 
@@ -92,6 +100,8 @@ BOOT button วนหน้าจอตามลำดับ: **Key 1 → Key 2 
 Extensions → ··· → Install from VSIX → เลือก esp32-token-display-1.0.0.vsix
 ```
 
+![Extension Sidebar](image/vscode-extension-sidebar.png)
+
 ### 2. ตั้งค่าผ่าน Extension
 
 เปิด Command Palette → `ESP32 Token Display: Open Config`
@@ -100,18 +110,26 @@ Extensions → ··· → Install from VSIX → เลือก esp32-token-disp
 - ใส่ WiFi SSID และ Password
 - เลือก COM Port ของ ESP32
 
+![Device Tab](image/vscode-extension-device-tab.png)
+
 **Tab: API Keys**
 - เพิ่ม OpenRouter keys (`sk-or-v1-...`)
 - เพิ่ม Anthropic key (`sk-ant-api03-...`) — เลือก Type: Anthropic
+
+![API Keys Tab](image/vscode-extension-api-keys-tab.png)
 
 **Tab: Claude.ai**
 - ใส่ Session Key และ Org ID (ดูวิธีได้จากหน้า info ใน extension)
 - ใส่ PC IP (Host) — extension จะตรวจหาให้อัตโนมัติ
 - กด **💾 Save Config** เพื่อบันทึก (เขียนลง `include/config.h` และ `server/.env`)
 
+![Claude.ai Tab](image/vscode-extension-claudeai-tab.png)
+
 ### 3. Flash ESP32
 
 **Tab: Actions** → กด **⚡ Build & Flash**
+
+![Actions Tab](image/vscode-extension-actions-tab.png)
 
 หรือใช้ PlatformIO CLI:
 ```bash

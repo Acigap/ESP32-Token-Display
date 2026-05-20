@@ -231,6 +231,14 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
 .toast.show{opacity:1}
 .toast-ok{background:#4caf50;color:#fff}
 .toast-err{background:#f44336;color:#fff}
+.home-hero{text-align:center;padding:10px 0 18px;border-bottom:1px solid var(--vscode-editorGroup-border,#444);margin-bottom:18px}
+.step-card{background:var(--vscode-editorWidget-background,rgba(255,255,255,.04));border:1px solid var(--vscode-editorGroup-border,#444);border-radius:4px;padding:12px 14px;margin-bottom:10px}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--vscode-button-background,#0e639c);color:#fff;font-size:11px;font-weight:700;flex-shrink:0;margin-right:8px}
+.step-title{font-size:13px;font-weight:600;display:flex;align-items:center;margin-bottom:7px}
+.step-body{font-size:12px;color:var(--vscode-foreground,#ccc);line-height:1.8;padding-left:30px}
+.req-row{display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.8;margin-bottom:1px}
+.home-link{color:var(--vscode-textLink-foreground,#3794ff);cursor:pointer;text-decoration:none}
+.home-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -246,7 +254,8 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
 
   <!-- Tabs -->
   <div class="tabs-nav">
-    <button class="tab-btn active" data-tab="device">📡 Device</button>
+    <button class="tab-btn active" data-tab="home">🏠 Home</button>
+    <button class="tab-btn" data-tab="device">📡 Device</button>
     <button class="tab-btn" data-tab="apikeys">🔑 API Keys</button>
     <button class="tab-btn" data-tab="anthropic">🤖 Anthropic</button>
     <button class="tab-btn" data-tab="claudeai">☁️ Claude.ai</button>
@@ -256,8 +265,107 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
   <!-- Content -->
   <div class="tabs-content">
 
+    <!-- ── Tab: Home ── -->
+    <div class="tab-pane active" id="tab-home">
+      <div class="home-hero">
+        <div style="font-size:34px;margin-bottom:6px">🔌</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">ESP32 Token Display</div>
+        <div style="font-size:12px;color:var(--vscode-descriptionForeground,#888);max-width:440px;margin:0 auto;line-height:1.7">
+          แสดงผล API usage จาก <strong>OpenRouter</strong>, <strong>Anthropic</strong> และ <strong>Claude.ai</strong><br>
+          บน ESP32 จอ ST7789 1.9&quot; — กด BOOT เพื่อสลับหน้าจอ
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">📋 สิ่งที่ต้องมีก่อนเริ่ม</div>
+        <div class="req-row"><span>✅</span><span><strong>ESP32</strong> พร้อมจอ ST7789 1.9&quot; (170×320) ในตัว + สาย USB-C</span></div>
+        <div class="req-row"><span>✅</span><span><strong>PlatformIO</strong> ติดตั้งใน VS Code — ค้นหา &quot;PlatformIO IDE&quot; ใน Extensions</span></div>
+        <div class="req-row"><span>✅</span><span><strong>Python 3.8+</strong> และ: <code>pip install curl_cffi flask python-dotenv</code></span></div>
+        <div class="req-row"><span>✅</span><span><strong>CH340 Driver</strong> สำหรับ USB ของบอร์ด (ถ้า Windows ไม่เห็น COM Port)</span></div>
+        <div class="req-row"><span>✅</span><span><strong>API Key</strong> จาก OpenRouter หรือ Anthropic อย่างน้อย 1 อัน</span></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🚀 ขั้นตอนการตั้งค่า</div>
+
+        <div class="step-card">
+          <div class="step-title">
+            <span class="step-num">1</span>ตั้งค่า WiFi และ COM Port
+            <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="goToTab('device')">📡 ไป Device →</button>
+          </div>
+          <div class="step-body">
+            ใส่ <strong>WiFi SSID / Password</strong> ของเครือข่ายที่ ESP32 จะเชื่อมต่อ (2.4 GHz เท่านั้น)<br>
+            เลือก <strong>COM Port</strong> ของ ESP32 กด ↺ เพื่อ refresh ถ้ายังไม่เห็น port<br>
+            ปล่อย Upload Speed ไว้ที่ <strong>460800</strong> (recommended)
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-title">
+            <span class="step-num">2</span>เพิ่ม API Keys
+            <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="goToTab('apikeys')">🔑 ไป API Keys →</button>
+          </div>
+          <div class="step-body">
+            กด <strong>+ Add Key</strong> แล้วใส่ชื่อและ API key<br>
+            • <strong>OpenRouter</strong> — key ขึ้นต้นด้วย <code>sk-or-v1-...</code> เลือก Type: OpenRouter<br>
+            • <strong>Anthropic</strong> — key ขึ้นต้นด้วย <code>sk-ant-api03-...</code> เลือก Type: Anthropic<br>
+            เพิ่มได้หลาย key — ESP32 จะวนแสดงผลทีละหน้า
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-title">
+            <span class="step-num">3</span>ตั้งค่า Claude.ai Relay
+            <span style="font-size:11px;font-weight:400;color:var(--vscode-descriptionForeground,#888);margin-left:4px">(optional)</span>
+            <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="goToTab('claudeai')">☁️ ไป Claude.ai →</button>
+          </div>
+          <div class="step-body">
+            ข้ามได้ถ้าไม่ต้องการดู Claude.ai usage<br>
+            เปิด <code>claude.ai</code> (login แล้ว) → กด <strong>F12</strong> → Application → Cookies → <code>.claude.ai</code><br>
+            คัดลอก <strong>sessionKey</strong> และ <strong>lastActiveOrg</strong> มาใส่ในช่องที่กำหนด<br>
+            PC IP จะถูกตรวจจับอัตโนมัติ กด 🔍 เพื่อ re-detect
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-title">
+            <span class="step-num">4</span>บันทึก Config และ Flash ESP32
+            <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="goToTab('actions')">⚡ ไป Actions →</button>
+          </div>
+          <div class="step-body">
+            กด <strong>💾 Save Config</strong> (มุมบนขวา) เพื่อเขียน <code>config.h</code> และ <code>server/.env</code><br>
+            จากนั้นกด <strong>⚡ Build &amp; Flash</strong> ใน Tab: Actions<br>
+            รอ compile เสร็จ (ประมาณ 1–2 นาทีครั้งแรก) — ESP32 จะแสดงผลทันทีหลัง reboot ✅
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-title">
+            <span class="step-num">5</span>เริ่ม Relay Server (ถ้าใช้ Claude.ai)
+            <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="goToTab('actions')">⚡ ไป Actions →</button>
+          </div>
+          <div class="step-body">
+            ใน Tab: Actions เลื่อนลงที่ส่วน <strong>Claude.ai Relay Server</strong><br>
+            กด <strong>▶ Start Relay</strong> — server จะรันบน <code>localhost:8765</code><br>
+            ESP32 จะ auto-switch ไปหน้า Claude.ai ทันทีที่ relay พร้อม
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">💡 Tips</div>
+        <div style="font-size:12px;line-height:2">
+          <div>• กด <strong>BOOT button</strong> บน ESP32 เพื่อสลับหน้าแสดงผล</div>
+          <div>• ESP32 อัปเดตข้อมูลอัตโนมัติทุก <strong>30 วินาที</strong></div>
+          <div>• ใช้ <strong>📺 Serial Monitor</strong> ใน Tab: Actions เพื่อดู debug log จาก ESP32</div>
+          <div>• ถ้า upload ไม่ได้ ลองกด <strong>BOOT</strong> ค้างไว้แล้วกด RESET แล้วค่อยปล่อย BOOT</div>
+          <div>• ESP32 รองรับ WiFi <strong>2.4 GHz เท่านั้น</strong> (ไม่รองรับ 5 GHz)</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Tab: Device ── -->
-    <div class="tab-pane active" id="tab-device">
+    <div class="tab-pane" id="tab-device">
       <div class="section">
         <div class="section-title">WiFi</div>
         <div class="form-row">
@@ -438,6 +546,12 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
 
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
+
+// ── Tab helper ─────────────────────────────────────────────────────────────
+function goToTab(name) {
+  const btn = document.querySelector('[data-tab="' + name + '"]');
+  if (btn) btn.click();
+}
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
