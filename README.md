@@ -218,6 +218,16 @@ pio device monitor --port COM8
 - [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) by Bodmer
 - [ArduinoJson](https://arduinojson.org/) by Benoit Blanchon
 
+---
+
+## Disclaimer
+
+ข้อมูลทั้งหมด (API keys, session tokens, WiFi credentials) จัดเก็บ**เฉพาะในเครื่องของคุณ** และไม่ถูกส่งไปยังเซิร์ฟเวอร์ภายนอกใดๆ นอกจาก API endpoint ที่คุณตั้งค่าไว้
+
+ฟีเจอร์ Claude.ai relay ใช้ session key ที่ผู้ใช้กรอกเองเพื่ออ่านข้อมูล usage จาก Anthropic web interface ผู้ใช้รับผิดชอบในการปฏิบัติตาม [Anthropic Terms of Service](https://www.anthropic.com/legal/consumer-terms), [OpenRouter Terms](https://openrouter.ai/terms) และ ToS ของ third-party services อื่นๆ ที่เกี่ยวข้องด้วยตนเอง
+
+โปรเจกต์นี้ไม่มีความเกี่ยวข้องกับ Anthropic, OpenRouter หรือ service ใดๆ ที่กล่าวถึง
+
 ## License
 
 MIT

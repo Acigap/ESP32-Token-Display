@@ -257,7 +257,7 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
     <button class="tab-btn active" data-tab="home">🏠 Home</button>
     <button class="tab-btn" data-tab="device">📡 Device</button>
     <button class="tab-btn" data-tab="apikeys">🔑 API Keys</button>
-    <button class="tab-btn" data-tab="anthropic">🤖 Anthropic</button>
+    <button class="tab-btn" data-tab="anthropic">🤖 AI Providers</button>
     <button class="tab-btn" data-tab="claudeai">☁️ Claude.ai</button>
     <button class="tab-btn" data-tab="actions">⚡ Actions</button>
   </div>
@@ -342,10 +342,10 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
         <div class="step-card">
           <div class="step-title">
             <span class="step-num">5</span>เริ่ม Relay Server (ถ้าใช้ Claude.ai)
-            <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="goToTab('actions')">⚡ ไป Actions →</button>
+            <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="goToTab('claudeai')">☁️ ไป Claude.ai →</button>
           </div>
           <div class="step-body">
-            ใน Tab: Actions เลื่อนลงที่ส่วน <strong>Claude.ai Relay Server</strong><br>
+            ใน Tab: Claude.ai เลื่อนลงที่ส่วน <strong>Start / Stop Relay</strong><br>
             กด <strong>▶ Start Relay</strong> — server จะรันบน <code>localhost:8765</code><br>
             ESP32 จะ auto-switch ไปหน้า Claude.ai ทันทีที่ relay พร้อม
           </div>
@@ -509,6 +509,21 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
           <input type="number" id="relay-port" value="8765" min="1024" max="65535" style="max-width:100px">
         </div>
       </div>
+
+      <div class="section">
+        <div class="section-title">Start / Stop Relay</div>
+        <div class="relay-header">
+          <div class="status-row">
+            <span class="dot" id="relay-dot"></span>
+            <span id="relay-status-text">Stopped</span>
+          </div>
+          <div class="btn-row" style="margin:0">
+            <button class="btn btn-p" id="btn-start-relay">▶ Start Relay</button>
+            <button class="btn btn-s" id="btn-stop-relay" disabled>■ Stop</button>
+          </div>
+        </div>
+        <div class="out" id="relay-output">Relay not running</div>
+      </div>
     </div>
 
     <!-- ── Tab: Actions ── -->
@@ -523,20 +538,6 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
         <div class="out" id="build-output" style="height:220px">Press Build or Build &amp; Flash to start...</div>
       </div>
 
-      <div class="section">
-        <div class="section-title">Claude.ai Relay Server</div>
-        <div class="relay-header">
-          <div class="status-row">
-            <span class="dot" id="relay-dot"></span>
-            <span id="relay-status-text">Stopped</span>
-          </div>
-          <div class="btn-row" style="margin:0">
-            <button class="btn btn-p" id="btn-start-relay">▶ Start Relay</button>
-            <button class="btn btn-s" id="btn-stop-relay" disabled>■ Stop</button>
-          </div>
-        </div>
-        <div class="out" id="relay-output">Relay not running</div>
-      </div>
     </div>
 
   </div><!-- /tabs-content -->

@@ -12,7 +12,10 @@
       "PowerShell(cd \"e:\\\\Gap_code\\\\TokenDisply\"; & \"$env:USERPROFILE\\\\.platformio\\\\penv\\\\Scripts\\\\pio.exe\" run 2>&1)",
       "Bash(python poc/get_claude_cookies.py)",
       "Bash(tasklist /FI \"IMAGENAME eq msedge.exe\" /NH)",
-      "Bash(tasklist /FI \"IMAGENAME eq chrome.exe\" /NH)"
+      "Bash(tasklist /FI \"IMAGENAME eq chrome.exe\" /NH)",
+      "PowerShell(Get-PnpDevice | Where-Object { $_.Status -ne 'OK' } | Select-Object Status, Class, FriendlyName, InstanceId | Format-Table -AutoSize)",
+      "PowerShell(Get-WmiObject Win32_VideoController)",
+      "Bash(npm run *)"
     ]
   }
 }

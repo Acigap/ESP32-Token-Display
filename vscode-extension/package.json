@@ -1,9 +1,31 @@
 {
   "name": "esp32-token-display",
   "displayName": "ESP32 Token Display",
-  "description": "Configure WiFi, API keys, Claude.ai session, build & flash ESP32 Token Display",
+  "description": "Configure WiFi, API keys, Claude.ai session, build & flash ESP32 Token Display firmware from VS Code",
   "version": "1.0.0",
   "publisher": "gapcode",
+  "icon": "media/icon.png",
+  "license": "MIT",
+  "homepage": "https://github.com/Acigap/ESP32-Token-Display",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Acigap/ESP32-Token-Display.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Acigap/ESP32-Token-Display/issues"
+  },
+  "keywords": [
+    "esp32",
+    "iot",
+    "openrouter",
+    "anthropic",
+    "claude",
+    "token",
+    "platformio",
+    "tft",
+    "display",
+    "embedded"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
