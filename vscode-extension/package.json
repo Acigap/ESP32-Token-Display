@@ -57,7 +57,7 @@
     "viewsWelcome": [
       {
         "view": "esp32td.sidebar",
-        "contents": "Configure WiFi, API keys and Claude.ai session for your ESP32 Token Display.\n\n[$(settings-gear) Open Config Panel](command:esp32td.openConfig)\n\n---\n\n[$(play) Start Relay Server](command:esp32td.startRelay)\n[$(debug-stop) Stop Relay Server](command:esp32td.stopRelay)"
+        "contents": "Configure WiFi, API keys and Claude.ai session for your ESP32 Token Display.\n\n[$(settings-gear) Open Config Panel](command:esp32td.openConfig)\n\n---\n\n[$(play) Start Relay Server](command:esp32td.startRelay)\n[$(broadcast) Start Relay Background](command:esp32td.startRelayBackground)\n[$(debug-stop) Stop Relay Server](command:esp32td.stopRelay)\n[$(primitive-square) Stop Relay Background](command:esp32td.stopRelayBackground)"
       }
     ],
     "commands": [
@@ -76,6 +76,16 @@
         "command": "esp32td.stopRelay",
         "title": "Stop Relay Server",
         "category": "ESP32 Token Display"
+      },
+      {
+        "command": "esp32td.startRelayBackground",
+        "title": "Start Relay Background",
+        "category": "ESP32 Token Display"
+      },
+      {
+        "command": "esp32td.stopRelayBackground",
+        "title": "Stop Relay Background",
+        "category": "ESP32 Token Display"
       }
     ],
     "menus": {
@@ -88,6 +98,12 @@
         },
         {
           "command": "esp32td.stopRelay"
+        },
+        {
+          "command": "esp32td.startRelayBackground"
+        },
+        {
+          "command": "esp32td.stopRelayBackground"
         }
       ]
     }

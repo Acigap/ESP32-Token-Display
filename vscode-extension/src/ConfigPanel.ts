@@ -42,7 +42,8 @@ export class ConfigPanel {
                 case 'ready':
                     await this._pushConfig();
                     await this._pushPorts();
-                    this._panel.webview.postMessage({ type: 'relayStatus', running: relay.isRunning });
+                    await relay.refreshStatus();
+                    this._panel.webview.postMessage({ type: 'relayStatus', status: relay.status });
                     break;
                 case 'saveConfig':
                     this._save(msg.config as ESP32Config);
@@ -60,17 +61,23 @@ export class ConfigPanel {
                     this._openMonitor(msg.port as string | undefined);
                     break;
                 case 'startRelay':
-                    relay.start();
+                    await relay.start();
                     break;
                 case 'stopRelay':
-                    relay.stop();
+                    await relay.stop();
+                    break;
+                case 'startRelayBackground':
+                    await relay.startBackground();
+                    break;
+                case 'stopRelayBackground':
+                    await relay.stopBackground();
                     break;
 
             }
         }, null, this._disposables);
 
         relay.onOutput(text => this._panel.webview.postMessage({ type: 'relayOutput', text }));
-        relay.onStatusChange(running => this._panel.webview.postMessage({ type: 'relayStatus', running }));
+        relay.onStatusChange(status => this._panel.webview.postMessage({ type: 'relayStatus', status }));
     }
 
     static createOrShow(ctx: vscode.ExtensionContext, relay: RelayManager) {
@@ -236,6 +243,7 @@ td input,td select{padding:3px 6px}
 .dot{width:10px;height:10px;border-radius:50%;background:#666;display:inline-block;flex-shrink:0}
 .dot.on{background:#4caf50;box-shadow:0 0 6px #4caf50}
 .info{background:var(--vscode-inputValidation-infoBackground,rgba(0,122,204,.12));border:1px solid var(--vscode-inputValidation-infoBorder,#007acc);padding:10px 12px;border-radius:2px;font-size:12px;margin-bottom:14px;line-height:1.6}
+.warn{background:var(--vscode-inputValidation-warningBackground,rgba(204,167,0,.12));border:1px solid var(--vscode-inputValidation-warningBorder,#cca700);padding:10px 12px;border-radius:2px;font-size:12px;margin-top:10px;line-height:1.6}
 .info a{color:var(--vscode-textLink-foreground,#3794ff);cursor:pointer}
 code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-family:var(--vscode-editor-font-family,monospace);font-size:11px}
 .toast{position:fixed;bottom:16px;right:16px;padding:8px 14px;border-radius:4px;font-size:12px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
@@ -543,8 +551,15 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
           </div>
           <div class="btn-row" style="margin:0">
             <button class="btn btn-p" id="btn-start-relay">▶ Start Relay</button>
+            <button class="btn btn-s" id="btn-start-relay-bg">▶ Start Relay (Background)</button>
             <button class="btn btn-s" id="btn-stop-relay" disabled>■ Stop</button>
+            <button class="btn btn-s" id="btn-stop-relay-bg" disabled>■ Stop Background</button>
           </div>
+        </div>
+        <div class="warn">
+          <strong>⚠️ Background mode notice</strong><br>
+          เมื่อกด <strong>Start Relay (Background)</strong> แล้ว relay จะยังทำงานต่อแม้ปิด workspace หรือปิด VS Code<br>
+          ต้องกด <strong>Stop Background</strong> (หรือ kill process) เพื่อหยุดการทำงาน
         </div>
         <div class="out" id="relay-output">Relay not running</div>
       </div>
@@ -771,11 +786,24 @@ function updatePorts(ports) {
 }
 
 // ── Relay status ───────────────────────────────────────────────────────────
-function setRelayStatus(running) {
-  document.getElementById('relay-dot').className     = 'dot' + (running ? ' on' : '');
-  document.getElementById('relay-status-text').textContent = running ? '🟢 Running' : '⚪ Stopped';
+function setRelayStatus(status) {
+  const mode = status?.mode || 'stopped';
+  const running = !!status?.running;
+
+  document.getElementById('relay-dot').className = 'dot' + (running ? ' on' : '');
+
+  if (!running) {
+    document.getElementById('relay-status-text').textContent = '⚪ Stopped';
+  } else if (mode === 'background') {
+    document.getElementById('relay-status-text').textContent = '🟢 Running (background)';
+  } else {
+    document.getElementById('relay-status-text').textContent = '🟢 Running (workspace)';
+  }
+
   document.getElementById('btn-start-relay').disabled = running;
-  document.getElementById('btn-stop-relay').disabled  = !running;
+  document.getElementById('btn-start-relay-bg').disabled = running;
+  document.getElementById('btn-stop-relay').disabled = mode !== 'foreground';
+  document.getElementById('btn-stop-relay-bg').disabled = mode !== 'background';
 }
 
 // ── Output helpers ─────────────────────────────────────────────────────────
@@ -859,8 +887,15 @@ document.getElementById('btn-start-relay').addEventListener('click', () => {
   document.getElementById('relay-output').textContent = '';
   vscode.postMessage({ type: 'startRelay' });
 });
+document.getElementById('btn-start-relay-bg').addEventListener('click', () => {
+  document.getElementById('relay-output').textContent = '';
+  vscode.postMessage({ type: 'startRelayBackground' });
+});
 document.getElementById('btn-stop-relay').addEventListener('click', () => {
   vscode.postMessage({ type: 'stopRelay' });
+});
+document.getElementById('btn-stop-relay-bg').addEventListener('click', () => {
+  vscode.postMessage({ type: 'stopRelayBackground' });
 });
 // ── Message listener ───────────────────────────────────────────────────────
 window.addEventListener('message', ev => {
@@ -870,7 +905,7 @@ window.addEventListener('message', ev => {
     case 'portsUpdated': updatePorts(m.ports); break;
     case 'buildOutput':  appendOut('build-output', m.text); break;
     case 'relayOutput':  appendOut('relay-output', m.text); break;
-    case 'relayStatus':  setRelayStatus(m.running); break;
+    case 'relayStatus':  setRelayStatus(m.status || { running: !!m.running, mode: m.running ? 'foreground' : 'stopped' }); break;
     case 'saveResult':
       saveInProgress = false;
       toast(m.message, m.success);

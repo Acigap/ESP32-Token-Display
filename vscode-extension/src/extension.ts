@@ -11,11 +11,17 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('esp32td.openConfig', () => {
             ConfigPanel.createOrShow(context, relayManager);
         }),
-        vscode.commands.registerCommand('esp32td.startRelay', () => {
-            relayManager.start();
+        vscode.commands.registerCommand('esp32td.startRelay', async () => {
+            await relayManager.start();
         }),
-        vscode.commands.registerCommand('esp32td.stopRelay', () => {
-            relayManager.stop();
+        vscode.commands.registerCommand('esp32td.stopRelay', async () => {
+            await relayManager.stop();
+        }),
+        vscode.commands.registerCommand('esp32td.startRelayBackground', async () => {
+            await relayManager.startBackground();
+        }),
+        vscode.commands.registerCommand('esp32td.stopRelayBackground', async () => {
+            await relayManager.stopBackground();
         })
     );
 
@@ -24,6 +30,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    relayManager?.stop();
+    void relayManager?.stop();
     ConfigPanel.disposeAll();
 }
