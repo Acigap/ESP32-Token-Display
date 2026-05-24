@@ -21,16 +21,19 @@
 
 ## Hardware
 
-**ESP32 Development Board (All-in-One)** — จอ ST7789 1.9" 170×320 ฝังในตัว ไม่ต้องต่อสายเพิ่ม
+รองรับ 3 บอร์ดหลักในโปรเจกต์นี้ โดยแต่ละรุ่นใช้ environment คนละตัวใน `platformio.ini`
 
-| รายการ | รายละเอียด |
-|--------|------------|
+### 1) ESP32 All-in-One ST7789 1.9" (`env:esp32dev`)
+
+![ESP32-All-in-One-ST7789 Claude.ai Display](image/hardware-display-claudeai-usage.jpg)
+
+| คุณสมบัติจำเป็น | ค่า |
+|----------------|-----|
 | MCU | ESP32 (Xtensa LX6 dual-core 240 MHz) |
-| Flash | 4 MB |
-| จอ | ST7789 TFT 1.9" 170×320 (landscape = 320×170) |
-| WiFi | 2.4 GHz |
-| USB | Type-C + CH340 |
-| ปุ่ม | BOOT (GPIO 0) |
+| Display | ST7789 1.9" 170×320 (landscape 320×170) |
+| Library จอ | TFT_eSPI |
+| ปุ่มสลับหน้า | BOOT (GPIO 0) |
+| Backlight | Active HIGH (`TFT_BACKLIGHT_ON=1`) |
 
 | Signal | GPIO |
 |--------|------|
@@ -40,6 +43,44 @@
 | DC | 2 |
 | RST | 4 |
 | BL | 32 |
+
+### 2) TTGO T-Display (`env:ttgo-t-display`)
+
+![ESP32 TTGO T-Display](image/esp32-ttgo-t-display.jpg)
+
+| คุณสมบัติจำเป็น | ค่า |
+|----------------|-----|
+| MCU | ESP32 |
+| Display | ST7789 1.14" 135×240 (landscape 240×135) |
+| Library จอ | TFT_eSPI |
+| ปุ่มสลับหน้า | BOOT (GPIO 0) |
+| ปุ่มเสริม | BTN2 (GPIO 35, ปัจจุบันยังไม่ใช้) |
+| Backlight | Active HIGH (`TFT_BACKLIGHT_ON=1`) |
+
+| Signal | GPIO |
+|--------|------|
+| MOSI | 19 |
+| SCLK | 18 |
+| CS | 5 |
+| DC | 16 |
+| RST | 23 |
+| BL | 4 |
+
+### 3) Waveshare ESP32-S3-Touch-LCD-1.9 (`env:esp32s3-touch-lcd-1_9`)
+
+![ESP32-S3 Touch LCD 1.9](image/esp32s3-touch-lcd-1_9.jpg)
+
+| คุณสมบัติจำเป็น | ค่า |
+|----------------|-----|
+| MCU | ESP32-S3R8 |
+| Flash / PSRAM | 16MB Flash + 8MB Octal PSRAM |
+| Memory mode | ต้องเป็น `qio_opi` |
+| Display | ST7789 1.9" 170×320 |
+| Library จอ | Arduino_GFX (ไม่ใช้ TFT_eSPI บนบอร์ดนี้) |
+| Touch IC | CST816 (I2C addr `0x15`) |
+| Touch pins | SDA=47, SCL=48 |
+| ปุ่มสลับหน้า | แตะจอ (ทดแทน BOOT button) |
+| Backlight | GPIO 14, Active LOW |
 
 ---
 
@@ -86,7 +127,7 @@ BOOT button วนหน้าจอตามลำดับ: **Key 1 → Key 2 
 แสดง Session usage (5 ชั่วโมง) และ Weekly usage (7 วัน) พร้อมเวลา reset  
 หน้าจะ switch อัตโนมัติเมื่อ relay server เพิ่งเริ่มทำงาน
 
-![Claude.ai Display](image/hardware-display-claudeai-usage.jpg)
+![ESP32-All-in-One-ST7789 Claude.ai Display](image/hardware-display-claudeai-usage.jpg)
 
 ---
 
