@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { spawn } from 'child_process';
-import { ConfigManager, ESP32Config, detectLocalIp } from './ConfigManager';
+import { ConfigManager, ESP32Config, detectLocalIp, getAvailableEnvs } from './ConfigManager';
 import { RelayManager } from './RelayManager';
 import { detectPorts } from './PortDetector';
 
@@ -51,10 +51,10 @@ export class ConfigPanel {
                     await this._pushPorts();
                     break;
                 case 'build':
-                    this._runPio(false, msg.port as string | undefined);
+                    this._runPio(false, msg.port as string | undefined, msg.boardEnv as string | undefined);
                     break;
                 case 'buildAndFlash':
-                    this._runPio(true, msg.port as string | undefined);
+                    this._runPio(true, msg.port as string | undefined, msg.boardEnv as string | undefined);
                     break;
                 case 'openMonitor':
                     this._openMonitor(msg.port as string | undefined);
@@ -93,7 +93,8 @@ export class ConfigPanel {
         if (!root) { return; }
         const config = ConfigManager.load(root);
         const detectedIp = detectLocalIp();
-        this._panel.webview.postMessage({ type: 'loadConfig', config, detectedIp });
+        const availableEnvs = getAvailableEnvs(root);
+        this._panel.webview.postMessage({ type: 'loadConfig', config, detectedIp, availableEnvs });
     }
 
     private async _pushPorts() {
@@ -113,12 +114,13 @@ export class ConfigPanel {
         }
     }
 
-    private _runPio(flash: boolean, port?: string) {
+    private _runPio(flash: boolean, port?: string, boardEnv?: string) {
         const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         if (!root) { return; }
 
         const exe  = pioExe();
-        const args = ['run'];
+        const args = ['--no-ansi', 'run'];
+        if (boardEnv) { args.push('-e', boardEnv); }
         if (flash) {
             args.push('-t', 'upload');
             if (port) { args.push('--upload-port', port); }
@@ -126,10 +128,16 @@ export class ConfigPanel {
 
         this._panel.webview.postMessage({
             type: 'buildOutput',
-            text: `▶ ${exe} ${args.join(' ')}\n`,
+            text: `▶ ${exe} ${args.slice(1).join(' ')}\n`,
         });
 
-        const proc = spawn(exe, args, { cwd: root });
+        const env = {
+            ...process.env,
+            PYTHONUTF8: '1',
+            PYTHONIOENCODING: 'utf-8',
+            NO_COLOR: '1',
+        };
+        const proc = spawn(exe, args, { cwd: root, env });
 
         const fwd = (data: Buffer) => {
             this._panel.webview.postMessage({ type: 'buildOutput', text: data.toString() });
@@ -190,6 +198,9 @@ body{font-family:var(--vscode-font-family,-apple-system,BlinkMacSystemFont,sans-
 .app-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--vscode-editorGroup-border,#444);flex-shrink:0;gap:8px}
 .app-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .header-right{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.save-state{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--vscode-editorGroup-border,#444);color:var(--vscode-descriptionForeground,#888)}
+.save-state.unsaved{border-color:var(--vscode-inputValidation-warningBorder,#cca700);background:var(--vscode-inputValidation-warningBackground,rgba(204,167,0,.12));color:var(--vscode-editorWarning-foreground,#f4d03f)}
+.save-state.saved{border-color:var(--vscode-inputValidation-infoBorder,#3794ff);background:var(--vscode-inputValidation-infoBackground,rgba(55,148,255,.10));color:var(--vscode-foreground,#ccc)}
 .tabs-nav{display:flex;border-bottom:1px solid var(--vscode-editorGroup-border,#444);flex-shrink:0;background:var(--vscode-editorGroupHeader-tabsBackground,#252526);overflow-x:auto}
 .tab-btn{padding:8px 14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--vscode-tab-inactiveForeground,#999);cursor:pointer;font-size:12px;font-family:inherit;white-space:nowrap}
 .tab-btn:hover{color:var(--vscode-foreground,#ccc);background:rgba(255,255,255,.05)}
@@ -248,6 +259,7 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
   <div class="app-header">
     <div class="app-title">🔌 ESP32 Token Display</div>
     <div class="header-right">
+      <span class="save-state saved" id="save-state">✅ Saved</span>
       <button class="btn btn-p" id="btn-save">💾 Save Config</button>
     </div>
   </div>
@@ -384,6 +396,10 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
       <div class="section">
         <div class="section-title">ESP32 Serial</div>
         <div class="form-row">
+          <label>Board</label>
+          <select id="board-env"><option value="esp32dev">esp32dev</option></select>
+        </div>
+        <div class="form-row">
           <label>COM Port</label>
           <div class="ig">
             <select id="com-port"><option value="">-- Detecting... --</option></select>
@@ -402,6 +418,14 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
 
       <div class="section">
         <div class="section-title">Display</div>
+        <div class="form-row">
+          <label>Theme</label>
+          <select id="display-theme">
+            <option value="dark"  selected>🌑 Dark — black bg, high-contrast (default)</option>
+            <option value="light">☀️ Light — white bg, dark text</option>
+            <option value="vivid">🎨 Vivid — dark bg, status-tinted header</option>
+          </select>
+        </div>
         <div class="form-row">
           <label>Update Interval</label>
           <div class="ig">
@@ -547,6 +571,29 @@ code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;font-fami
 
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
+let isDirty = false;
+let saveInProgress = false;
+let pendingBuildAction = null;
+
+function setDirty(nextDirty) {
+  isDirty = !!nextDirty;
+  const badge = document.getElementById('save-state');
+  if (!badge) return;
+  badge.classList.remove('saved', 'unsaved');
+  if (isDirty) {
+    badge.classList.add('unsaved');
+    badge.textContent = '⚠ Unsaved changes';
+  } else {
+    badge.classList.add('saved');
+    badge.textContent = '✅ Saved';
+  }
+}
+
+function markDirty() {
+  if (!saveInProgress) {
+    setDirty(true);
+  }
+}
 
 // ── Tab helper ─────────────────────────────────────────────────────────────
 function goToTab(name) {
@@ -631,6 +678,7 @@ function renderKeys() {
     ['input','change'].forEach(ev => el.addEventListener(ev, e => {
       const t = e.target, idx = +t.dataset.i, f = t.dataset.f;
       apiKeys[idx][f] = f === 'isAnthropic' ? t.value === 'true' : t.value;
+      markDirty();
     }));
   });
   tbody.querySelectorAll('.toggle-key').forEach(btn => {
@@ -642,13 +690,14 @@ function renderKeys() {
     });
   });
   tbody.querySelectorAll('.btn-del').forEach(btn => {
-    btn.addEventListener('click', () => { apiKeys.splice(+btn.dataset.i, 1); renderKeys(); });
+    btn.addEventListener('click', () => { apiKeys.splice(+btn.dataset.i, 1); renderKeys(); markDirty(); });
   });
 }
 
 document.getElementById('btn-add-key').addEventListener('click', () => {
   apiKeys.push({ name: '', key: '', isAnthropic: false });
   renderKeys();
+  markDirty();
 });
 
 // ── Collect / load config ──────────────────────────────────────────────────
@@ -656,9 +705,11 @@ function collect() {
   return {
     wifiSsid:           document.getElementById('wifi-ssid').value,
     wifiPassword:       document.getElementById('wifi-password').value,
+    boardEnv:           document.getElementById('board-env').value,
     comPort:            document.getElementById('com-port').value,
     uploadSpeed:        parseInt(document.getElementById('upload-speed').value) || 460800,
     updateInterval:     parseInt(document.getElementById('update-interval').value) || 30000,
+    displayTheme:       document.getElementById('display-theme').value || 'dark',
     apiKeys:            apiKeys.map(k => ({...k})),
     anthropicModel:     document.getElementById('anthropic-model').value,
     anthropicApiVersion:document.getElementById('anthropic-api-version').value,
@@ -675,7 +726,9 @@ function load(cfg) {
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
   s('wifi-ssid',            cfg.wifiSsid);
   s('wifi-password',        cfg.wifiPassword);
+  if (cfg.boardEnv) { s('board-env', cfg.boardEnv); }
   s('update-interval',      cfg.updateInterval ?? 30000);
+  s('display-theme',        cfg.displayTheme ?? 'dark');
   s('anthropic-model',      cfg.anthropicModel ?? 'claude-haiku-4-5');
   s('anthropic-api-version',cfg.anthropicApiVersion ?? '2023-06-01');
   s('anthropic-base-url',   cfg.anthropicBaseUrl ?? 'https://api.anthropic.com');
@@ -687,9 +740,23 @@ function load(cfg) {
   s('upload-speed',         String(cfg.uploadSpeed ?? 460800));
   apiKeys = (cfg.apiKeys ?? []).map(k => ({...k}));
   renderKeys();
+  setDirty(false);
 }
 
 // ── Ports ──────────────────────────────────────────────────────────────────
+function updateEnvs(envs) {
+  const sel = document.getElementById('board-env');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  envs.forEach(e => {
+    const o = document.createElement('option');
+    o.value = e; o.textContent = e;
+    if (e === prev) o.selected = true;
+    sel.appendChild(o);
+  });
+  if (!prev && envs.length) sel.value = envs[0];
+}
+
 function updatePorts(ports) {
   const sel = document.getElementById('com-port');
   const prev = sel.value;
@@ -718,6 +785,50 @@ function appendOut(id, text) {
   box.scrollTop = box.scrollHeight;
 }
 
+function runBuild(kind) {
+  document.querySelector('[data-tab="actions"]').click();
+  document.getElementById('build-output').textContent = '';
+  const payload = {
+    port: document.getElementById('com-port').value,
+    boardEnv: document.getElementById('board-env').value,
+  };
+  vscode.postMessage(kind === 'flash' ? { type: 'buildAndFlash', ...payload } : { type: 'build', ...payload });
+}
+
+function queueSaveAndBuild(kind) {
+  pendingBuildAction = kind;
+  if (saveInProgress) return;
+  saveInProgress = true;
+  vscode.postMessage({ type: 'saveConfig', config: collect() });
+}
+
+function requestBuild(kind) {
+  if (!isDirty) {
+    runBuild(kind);
+    return;
+  }
+  const wantsSave = confirm('You have unsaved changes. Save config before building?');
+  if (wantsSave) {
+    queueSaveAndBuild(kind);
+    return;
+  }
+  toast('Build canceled: please save config first.', false);
+}
+
+document.querySelector('.tabs-content').addEventListener('input', (e) => {
+  const t = e.target;
+  if (t && (t.matches('input') || t.matches('textarea') || t.matches('select'))) {
+    markDirty();
+  }
+}, true);
+
+document.querySelector('.tabs-content').addEventListener('change', (e) => {
+  const t = e.target;
+  if (t && (t.matches('input') || t.matches('textarea') || t.matches('select'))) {
+    markDirty();
+  }
+}, true);
+
 // ── Toast ──────────────────────────────────────────────────────────────────
 function toast(msg, ok) {
   const el = document.getElementById('toast');
@@ -728,20 +839,18 @@ function toast(msg, ok) {
 
 // ── Button handlers ────────────────────────────────────────────────────────
 document.getElementById('btn-save').addEventListener('click', () => {
+  if (saveInProgress) return;
+  saveInProgress = true;
   vscode.postMessage({ type: 'saveConfig', config: collect() });
 });
 document.getElementById('btn-refresh-ports').addEventListener('click', () => {
   vscode.postMessage({ type: 'refreshPorts' });
 });
 document.getElementById('btn-build').addEventListener('click', () => {
-  document.querySelector('[data-tab="actions"]').click();
-  document.getElementById('build-output').textContent = '';
-  vscode.postMessage({ type: 'build', port: document.getElementById('com-port').value });
+  requestBuild('build');
 });
 document.getElementById('btn-flash').addEventListener('click', () => {
-  document.querySelector('[data-tab="actions"]').click();
-  document.getElementById('build-output').textContent = '';
-  vscode.postMessage({ type: 'buildAndFlash', port: document.getElementById('com-port').value });
+  requestBuild('flash');
 });
 document.getElementById('btn-monitor').addEventListener('click', () => {
   vscode.postMessage({ type: 'openMonitor', port: document.getElementById('com-port').value });
@@ -757,12 +866,25 @@ document.getElementById('btn-stop-relay').addEventListener('click', () => {
 window.addEventListener('message', ev => {
   const m = ev.data;
   switch (m.type) {
-    case 'loadConfig':   load(m.config); if (m.detectedIp) applyDetectedIp(m.detectedIp); break;
+    case 'loadConfig':   load(m.config); if (m.availableEnvs) updateEnvs(m.availableEnvs); if (m.config.boardEnv) document.getElementById('board-env').value = m.config.boardEnv; if (m.detectedIp) applyDetectedIp(m.detectedIp); break;
     case 'portsUpdated': updatePorts(m.ports); break;
     case 'buildOutput':  appendOut('build-output', m.text); break;
     case 'relayOutput':  appendOut('relay-output', m.text); break;
     case 'relayStatus':  setRelayStatus(m.running); break;
-    case 'saveResult':   toast(m.message, m.success); break;
+    case 'saveResult':
+      saveInProgress = false;
+      toast(m.message, m.success);
+      if (m.success) {
+        setDirty(false);
+        if (pendingBuildAction) {
+          const next = pendingBuildAction;
+          pendingBuildAction = null;
+          runBuild(next);
+        }
+      } else {
+        pendingBuildAction = null;
+      }
+      break;
   }
 });
 

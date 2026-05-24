@@ -10,8 +10,11 @@ description: >
 
 | File | Trigger | Purpose |
 |------|---------|---------|
-| `.github/workflows/build.yml` | push to `main`/`develop`, any PR | Compile firmware, upload artifact |
-| `.github/workflows/release.yml` | push tag `v*.*.*` | Compile + create GitHub Release with `.bin` |
+| `.github/workflows/build.yml` | push to `main`/`develop`, any PR | Compile `esp32dev`, upload artifact |
+| `.github/workflows/release.yml` | push tag `v*.*.*` | Compile `esp32dev` + create GitHub Release with `.bin` |
+
+Current CI compiles only `esp32dev` by default.
+If new boards are introduced, workflows must be extended explicitly.
 
 ---
 
@@ -66,6 +69,35 @@ Alternatively, add a fallback:
     PLATFORMIO_SETTING_ENABLE_TELEMETRY: "false"
 ```
 
+### New board added locally but CI still only validates `esp32dev`
+Symptom: local S3/TTGO build works, but CI never catches regressions for those envs.
+
+Fix option A (build all envs in one job):
+```yaml
+- name: Build all firmware envs
+  run: |
+    pio run -e esp32dev
+    pio run -e esp32s3-touch-lcd-1_9
+    pio run -e ttgo-t-display
+```
+
+Fix option B (matrix):
+```yaml
+strategy:
+  matrix:
+    env: [esp32dev, esp32s3-touch-lcd-1_9, ttgo-t-display]
+
+steps:
+  - name: Build ${{ matrix.env }}
+    run: pio run -e ${{ matrix.env }}
+```
+
+### `esp32s3-touch-lcd-1_9` fails in CI, works locally
+Check:
+1. `platformio.ini` still contains the S3 env platform URL and board settings.
+2. Cache was invalidated after changing platform URL or dependencies.
+3. Build command targets the exact env name (`esp32s3-touch-lcd-1_9`).
+
 ### Release workflow — `GITHUB_TOKEN` permission denied
 
 Ensure `permissions: contents: write` is set at the job level in `release.yml`:
@@ -88,6 +120,8 @@ Wrong: `git tag 1.0.0` → Right: `git tag v1.0.0`
 cp include/config.h.example include/config.h
 pio run -e esp32dev
 ```
+
+If changing board-specific code, also run the affected env locally (for example `esp32s3-touch-lcd-1_9`).
 
 If it compiles locally but not in CI, compare:
 - `platformio.ini` `lib_deps` versions

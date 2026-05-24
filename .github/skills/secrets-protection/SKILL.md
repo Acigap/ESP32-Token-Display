@@ -14,9 +14,12 @@ description: >
 | `WIFI_SSID` | `include/config.h` | **NO** |
 | `WIFI_PASSWORD` | `include/config.h` | **NO** |
 | `API_KEYS[].key` (OpenRouter) | `include/config.h` | **NO** |
+| `API_KEYS[].key` (Anthropic) | `include/config.h` | **NO** |
+| `CLAUDEAI_SESSION` | `server/.env` | **NO** |
+| `LASTACTIVE_ORG` | `server/.env` | **NO** |
 | Template / placeholder values | `include/config.h.example` | **YES** |
 
-`include/config.h` is listed in `.gitignore` — it must stay there.
+`include/config.h` and `server/.env` are in `.gitignore` and must stay there.
 
 ---
 
@@ -42,8 +45,8 @@ Edit **only** `include/config.h` (never `config.h.example`):
 
 ```cpp
 const APIKeyConfig API_KEYS[] = {
-    {"Personal", "sk-or-v1-REAL_KEY_HERE"},
-    {"Work",     "sk-or-v1-ANOTHER_KEY"},
+  {"Personal", "sk-or-v1-REAL_KEY_HERE", false},
+  {"Work",     "sk-ant-api03-REAL_KEY", true},
     // add more rows here
 };
 ```
@@ -54,14 +57,18 @@ const APIKeyConfig API_KEYS[] = {
 
 ## If a Secret Was Accidentally Committed
 
-1. **Revoke the key immediately** at https://openrouter.ai/keys — treat it as compromised.
+1. **Revoke/rotate immediately**:
+  - OpenRouter key: rotate in OpenRouter dashboard.
+  - Anthropic key: rotate in Anthropic console.
+  - Claude session: log out/revoke active web sessions.
 2. Remove from history:
    ```bash
    git filter-repo --path include/config.h --invert-paths
+  git filter-repo --path server/.env --invert-paths
    git push --force-with-lease
    ```
    (Requires `git filter-repo` — install: `pip install git-filter-repo`)
-3. Verify `.gitignore` still contains `include/config.h`.
+3. Verify `.gitignore` still contains both `include/config.h` and `server/.env`.
 4. Generate and configure a new key.
 
 ---
@@ -70,7 +77,9 @@ const APIKeyConfig API_KEYS[] = {
 
 `scripts/pre-commit` blocks commits that:
 - Stage `include/config.h`
+- Stage `server/.env`
 - Contain `sk-or-v1-` (real OpenRouter key prefix)
+- Contain `sk-ant-` patterns
 - Contain `YOUR_WIFI_PASSWORD` replaced with an actual value pattern
 
 Install once per clone: `bash scripts/install-hooks.sh`
@@ -84,3 +93,15 @@ This compiles successfully because the example file contains only placeholder st
 
 **Never** store real credentials in GitHub Actions secrets for this project —
 the firmware is flashed locally; CI only validates that the code compiles.
+
+---
+
+## Quick Local Secret Audit
+
+Before pushing, run a local scan in repo root:
+
+```bash
+git grep -nE "sk-or-v1-|sk-ant-|CLAUDEAI_SESSION|LASTACTIVE_ORG|WIFI_PASSWORD"
+```
+
+Expected hits should be templates/examples only (not real credential values).

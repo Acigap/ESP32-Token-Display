@@ -19,6 +19,12 @@ description: >
 | `package.json` | Manifest: commands, views, activity bar, contributes |
 | `out/extension.js` | Compiled bundle (generated — never edit directly) |
 
+Recent behavior to preserve:
+- Board env list is read dynamically from `platformio.ini` sections (`[env:...]`).
+- Selected board env is persisted in `.vscode/esp32-display.json`.
+- Build/flash command includes the selected env (`pio run -e <env>`).
+- Saving config patches only the selected env section in `platformio.ini` (`upload_port`, `monitor_port`, `upload_speed`).
+
 ---
 
 ## Where Config Is Stored
@@ -29,7 +35,13 @@ description: >
 |------|---------------|
 | `include/config.h` | WiFi, API keys, Anthropic/OpenRouter URLs, relay host/port, update interval |
 | `server/.env` | `CLAUDEAI_SESSION`, `LASTACTIVE_ORG`, `RELAY_PORT` |
-| `platformio.ini` | `upload_port`, `monitor_port`, `upload_speed` |
+| `platformio.ini` | selected env section: `upload_port`, `monitor_port`, `upload_speed` |
+
+Also written by extension:
+
+| File | Purpose |
+|------|---------|
+| `.vscode/esp32-display.json` | Persist last selected `boardEnv` |
 
 `ConfigManager.load()` reads all three and merges them.
 
@@ -45,6 +57,17 @@ description: >
 | 🤖 AI Providers | `anthropic` | `tab-anthropic` |
 | ☁️ Claude.ai | `claudeai` | `tab-claudeai` |
 | ⚡ Actions | `actions` | `tab-actions` |
+
+---
+
+## Board-aware flow
+
+1. Device tab board selector (`#board-env`) is populated from `getAvailableEnvs()`.
+2. UI sends `boardEnv` in build/buildAndFlash messages.
+3. Panel backend spawns PlatformIO with `-e boardEnv`.
+4. Config save patches only that env in `platformio.ini`.
+
+If adding a new board env to `platformio.ini`, no extra extension code should be required for the selector to show it.
 
 ---
 
@@ -91,6 +114,8 @@ code --install-extension esp32-token-display-1.0.0.vsix --force
 
 > **Tip**: After reload, the Config Panel reopens automatically because `activate()` calls `ConfigPanel.createOrShow()`.
 
+> **Tip**: When testing board-specific flows, verify both the board selector value and the generated PlatformIO command line in the Actions output.
+
 ---
 
 ## Adding a New Tab
@@ -123,6 +148,15 @@ code --install-extension esp32-token-display-1.0.0.vsix --force
 ---
 
 ## Common Issues
+
+### Build/flash runs against wrong board env
+- Check Device tab board selection.
+- Confirm Actions output starts with `pio ... run -e <expected-env>`.
+- If selection resets after reload, check `.vscode/esp32-display.json` write permissions.
+
+### Port/speed changed in wrong env section
+Confirm that save logic is patching only the selected env section in `platformio.ini`.
+If keys are missing in that section, add them manually once (`upload_port`, `monitor_port`, `upload_speed`) so future patches can replace values safely.
 
 ### `out/extension.js` is stale after editing
 Run `npm run build` (or `npm run package` to also get a fresh .vsix).

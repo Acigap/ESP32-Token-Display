@@ -38,11 +38,13 @@ export interface ESP32Config {
     // WiFi
     wifiSsid: string;
     wifiPassword: string;
-    // Serial / Build
+    // Board / Serial / Build
+    boardEnv: string;
     comPort: string;
     uploadSpeed: number;
     // Display
     updateInterval: number;
+    displayTheme: 'dark' | 'light' | 'vivid';
     // API Keys
     apiKeys: ApiKey[];
     // Anthropic / OpenRouter
@@ -60,9 +62,11 @@ export interface ESP32Config {
 const DEFAULTS: ESP32Config = {
     wifiSsid: '',
     wifiPassword: '',
+    boardEnv: 'esp32dev',
     comPort: 'COM8',
     uploadSpeed: 460800,
     updateInterval: 30000,
+    displayTheme: 'dark',
     apiKeys: [],
     anthropicModel: 'claude-haiku-4-5',
     anthropicApiVersion: '2023-06-01',
@@ -109,7 +113,56 @@ function parseEnv(src: string): Record<string, string> {
     return out;
 }
 
+// ── Prefs (board selection persistence) ───────────────────────────────────
+
+function prefsPath(workspaceRoot: string): string {
+    return path.join(workspaceRoot, '.vscode', 'esp32-display.json');
+}
+
+function loadPrefs(workspaceRoot: string): { boardEnv?: string } {
+    try {
+        const p = prefsPath(workspaceRoot);
+        if (fs.existsSync(p)) { return JSON.parse(fs.readFileSync(p, 'utf-8')); }
+    } catch { /* ignore */ }
+    return {};
+}
+
+function savePrefs(workspaceRoot: string, prefs: { boardEnv?: string }): void {
+    const p = prefsPath(workspaceRoot);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify(prefs, null, 2), 'utf-8');
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
+
+/** Returns all [env:xxx] names found in platformio.ini. */
+export function getAvailableEnvs(workspaceRoot: string): string[] {
+    const pioIni = path.join(workspaceRoot, 'platformio.ini');
+    if (!fs.existsSync(pioIni)) { return ['esp32dev']; }
+    const src = fs.readFileSync(pioIni, 'utf-8');
+    const envs: string[] = [];
+    for (const m of src.matchAll(/^\[env:([^\]]+)\]/gm)) { envs.push(m[1]); }
+    return envs.length ? envs : ['esp32dev'];
+}
+
+/**
+ * Replace a key's value within a specific [env:name] section only.
+ * Leaves all other sections untouched.
+ */
+function patchIniEnvSection(src: string, envName: string, replacements: Record<string, string>): string {
+    const lines = src.split('\n');
+    let inTarget = false;
+    return lines.map(line => {
+        const sec = line.match(/^\[env:([^\]]+)\]/);
+        if (sec) { inTarget = sec[1] === envName; return line; }
+        if (!inTarget) { return line; }
+        for (const [key, value] of Object.entries(replacements)) {
+            const re = new RegExp(`^(\\s*${key}\\s*=\\s*)\\S+`);
+            if (re.test(line)) { return line.replace(re, `$1${value}`); }
+        }
+        return line;
+    }).join('\n');
+}
 
 export class ConfigManager {
     static load(workspaceRoot: string): ESP32Config {
@@ -130,6 +183,8 @@ export class ConfigManager {
             if (relayPort) { cfg.relayPort = relayPort; }
             const interval = parseNum(src, 'UPDATE_INTERVAL');
             if (interval) { cfg.updateInterval = interval; }
+            const themeM = src.match(/#define\s+DISPLAY_THEME\s+THEME_(DARK|LIGHT|VIVID)/);
+            if (themeM) { cfg.displayTheme = themeM[1].toLowerCase() as 'dark' | 'light' | 'vivid'; }
             const keys = parseApiKeys(src);
             if (keys.length) { cfg.apiKeys = keys; }
         }
@@ -144,14 +199,31 @@ export class ConfigManager {
             if (rport) { cfg.relayPort = rport; }
         }
 
-        // platformio.ini  (upload_port, upload_speed)
+        // platformio.ini  (boardEnv, upload_port, upload_speed)
         const pioIni = path.join(workspaceRoot, 'platformio.ini');
         if (fs.existsSync(pioIni)) {
             const src = fs.readFileSync(pioIni, 'utf-8');
-            const portM  = src.match(/upload_port\s*=\s*(\S+)/);
-            const speedM = src.match(/upload_speed\s*=\s*(\d+)/);
-            if (portM)  { cfg.comPort     = portM[1]; }
-            if (speedM) { cfg.uploadSpeed = parseInt(speedM[1], 10); }
+            const availableEnvs = getAvailableEnvs(workspaceRoot);
+            const prefs = loadPrefs(workspaceRoot);
+            // Use last saved board choice, fall back to first env in file
+            if (prefs.boardEnv && availableEnvs.includes(prefs.boardEnv)) {
+                cfg.boardEnv = prefs.boardEnv;
+            } else {
+                const envMatch = src.match(/^\[env:([^\]]+)\]/m);
+                if (envMatch) { cfg.boardEnv = envMatch[1]; }
+            }
+            // Read port/speed from the chosen env section
+            const lines = src.split('\n');
+            let inTarget = false;
+            for (const line of lines) {
+                const sec = line.match(/^\[env:([^\]]+)\]/);
+                if (sec) { inTarget = sec[1] === cfg.boardEnv; continue; }
+                if (!inTarget) { continue; }
+                const portM  = line.match(/^\s*upload_port\s*=\s*(\S+)/);
+                const speedM = line.match(/^\s*upload_speed\s*=\s*(\d+)/);
+                if (portM)  { cfg.comPort     = portM[1]; }
+                if (speedM) { cfg.uploadSpeed = parseInt(speedM[1], 10); }
+            }
         }
 
         return cfg;
@@ -173,17 +245,23 @@ export class ConfigManager {
             'utf-8'
         );
 
-        // Patch platformio.ini (upload_port, upload_speed only)
+        // Patch platformio.ini — only the selected env section
         const pioIni = path.join(workspaceRoot, 'platformio.ini');
         if (fs.existsSync(pioIni)) {
             let src = fs.readFileSync(pioIni, 'utf-8');
+            const envName = cfg.boardEnv || 'esp32dev';
+            const replacements: Record<string, string> = {};
             if (cfg.comPort) {
-                src = src.replace(/upload_port\s*=\s*\S+/, `upload_port = ${cfg.comPort}`);
-                src = src.replace(/monitor_port\s*=\s*\S+/, `monitor_port = ${cfg.comPort}`);
+                replacements['upload_port']  = cfg.comPort;
+                replacements['monitor_port'] = cfg.comPort;
             }
-            src = src.replace(/upload_speed\s*=\s*\d+/, `upload_speed = ${cfg.uploadSpeed}`);
+            replacements['upload_speed'] = String(cfg.uploadSpeed);
+            src = patchIniEnvSection(src, envName, replacements);
             fs.writeFileSync(pioIni, src, 'utf-8');
         }
+
+        // Persist board selection so reload remembers it
+        savePrefs(workspaceRoot, { boardEnv: cfg.boardEnv });
     }
 }
 
@@ -238,6 +316,9 @@ const int NUM_API_KEYS = sizeof(API_KEYS) / sizeof(APIKeyConfig);
 
 // Update interval (milliseconds)
 #define UPDATE_INTERVAL ${cfg.updateInterval}  // ${cfg.updateInterval / 1000} seconds
+
+// Display theme — DARK (default), LIGHT (white bg), or VIVID (status-tinted header)
+#define DISPLAY_THEME THEME_${(cfg.displayTheme ?? 'dark').toUpperCase()}
 
 
 #endif // CONFIG_H

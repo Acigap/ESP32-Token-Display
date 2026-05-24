@@ -85,12 +85,21 @@ Open the Config Panel: `Ctrl+Shift+P` → **ESP32 Token Display: Open Config**
 
 | Tab | What to fill in |
 |-----|----------------|
-| **📡 Device** | WiFi SSID, Password, COM Port (press ↺ to auto-detect), Upload Speed |
+| **📡 Device** | Board env, WiFi SSID, Password, COM Port (press ↺), Upload Speed, Display Theme |
 | **🔑 API Keys** | Add OpenRouter keys (`sk-or-v1-...`) and/or Anthropic keys (`sk-ant-...`) |
 | **🤖 AI Providers** | Anthropic model, API version, base URL; OpenRouter API URL |
 | **☁️ Claude.ai** | Session key + Org ID from browser cookies (see below) |
 
 Press **💾 Save Config** — this writes `include/config.h`, `server/.env`, and patches `platformio.ini`.
+
+### Choose the correct board env first
+
+In **📡 Device** tab, set Board to match hardware:
+- `esp32dev` for classic ESP32 1.9 inch board
+- `esp32s3-touch-lcd-1_9` for Waveshare ESP32-S3 Touch LCD 1.9
+- `ttgo-t-display` for TTGO T-Display
+
+This affects build flags, display backend, input model, and upload behavior.
 
 ### Getting Claude.ai Session Key & Org ID
 
@@ -112,17 +121,21 @@ Build output appears inline in the panel.
 ### Via terminal
 
 ```powershell
-# Compile only
+# Compile only (replace env as needed)
 pio run -e esp32dev
 
-# Compile + flash (ESP32 must be connected on the configured COM port)
+# Compile + flash
 pio run -e esp32dev --target upload
 
 # Serial monitor
 pio device monitor -p COM6 -b 115200
 ```
 
-If the flash fails: hold **BOOT** on the ESP32, press **EN**, then release **BOOT**, then retry.
+If flash fails:
+- `esp32dev` / `ttgo-t-display`: hold **BOOT**, press **EN/RESET**, release **BOOT**, retry.
+- `esp32s3-touch-lcd-1_9`: verify board env and COM first; BOOT sequence is usually not required.
+
+For S3 touch board, runtime navigation uses touch tap (CST816), not BOOT button.
 
 ---
 

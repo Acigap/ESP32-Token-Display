@@ -109,8 +109,19 @@ Extensions → ··· → Install from VSIX → เลือก esp32-token-disp
 **Tab: Device**
 - ใส่ WiFi SSID และ Password
 - เลือก COM Port ของ ESP32
+- เลือก **Display Theme** (🌑 Dark / ☀️ Light / 🎨 Vivid) — ดูรายละเอียดด้านล่าง
 
 ![Device Tab](image/vscode-extension-device-tab.png)
+
+**Theme options**
+
+| Theme | ลักษณะ | เหมาะกับ |
+|-------|--------|---------|
+| 🌑 **Dark** (default) | พื้นดำ ตัวอักษรขาว/เทาสว่าง | ห้องปกติ / กลางคืน |
+| ☀️ **Light** | พื้นขาว ตัวอักษรดำ | ห้องที่แสงจัด / กลางวันแดด |
+| 🎨 **Vivid** | พื้นดำ + แถบ header เปลี่ยนสีตามสถานะ (เขียว/ส้ม/แดง) | อยากเห็นสถานะแบบเด่นชัด |
+
+เปลี่ยน theme → กด **💾 Save Config** → **⚡ Build & Flash** (ต้อง rebuild firmware เพราะ theme เป็น compile-time)
 
 **Tab: API Keys**
 - เพิ่ม OpenRouter keys (`sk-or-v1-...`)
@@ -176,6 +187,9 @@ const APIKeyConfig API_KEYS[] = {
 
 // Update interval
 #define UPDATE_INTERVAL 30000  // ms
+
+// Display theme: THEME_DARK | THEME_LIGHT | THEME_VIVID
+#define DISPLAY_THEME THEME_DARK
 ```
 
 ### server/.env

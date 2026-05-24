@@ -1,21 +1,24 @@
 ---
 name: tft-display-ui-design
 description: >
-  Guide for designing clean, stable, and visually appealing UI on the
-  ST7789 TFT display (320×170 landscape) using TFT_eSPI. Use this when
-  asked to improve layout, fix flickering, change colors, add new screens,
-  or redesign any part of the display.
+  Guide for designing clean, stable, and visually appealing UI for
+  TokenDisplay across supported TFT boards. Use this when asked to improve
+  layout, fix flickering, change colors, add new screens, or redesign display
+  behavior for esp32dev / esp32s3-touch-lcd-1_9 / ttgo-t-display.
 ---
 
 ## Canvas
 
-| Property | Value |
-|----------|-------|
-| Driver   | ST7789 |
-| Physical | 170 × 320 (portrait) |
-| **Logical (landscape)** | **320 × 170** |
-| Rotation | `tft.setRotation(1)` |
-| SPI freq | 80 MHz |
+| Env | Backend | Logical canvas (landscape) |
+|-----|---------|-----------------------------|
+| `esp32dev` | TFT_eSPI | 320 × 170 |
+| `esp32s3-touch-lcd-1_9` | Arduino_GFX via `Display` wrapper | 320 × 170 |
+| `ttgo-t-display` | TFT_eSPI | 240 × 135 |
+
+Common rules:
+- Rotation is `setRotation(1)` for all boards.
+- Always code against the `Display` abstraction from `include/GfxDisplay.h`.
+- Use `SCREEN_WIDTH` and `SCREEN_HEIGHT` macros, not hardcoded dimensions.
 
 ---
 
@@ -34,30 +37,39 @@ description: >
 │       PROGRESS BAR  (18 px)         │
 ├─────────────────────────────────────┤  y≈144
 │           FOOTER  (24 px)           │  timestamp / last-update
-└─────────────────────────────────────┘  y=170
+└─────────────────────────────────────┘  y=170 or y=135
 ```
 
 Constants live in `include/DisplayUI.h`:
 ```cpp
-#define HEADER_H  28
-#define FOOTER_H  24
-#define BAR_H     18
+#if SCREEN_HEIGHT < 160
+  #define HEADER_H 22
+  #define FOOTER_H 14
+  #define BAR_H    11
+#else
+  #define HEADER_H 28
+  #define FOOTER_H 22
+  #define BAR_H    14
+#endif
 ```
+
+UI is intentionally split into two layout classes:
+- Compact layout for small height (TTGO 240x135).
+- Full layout for 320x170 boards.
 
 ---
 
 ## Color Palette
 
-| Role | Constant | Hex |
-|------|----------|-----|
-| Background | `TFT_BLACK` | `#000000` |
-| Header bg | `TFT_NAVY` | `#000080` |
-| Primary text | `TFT_WHITE` | `#FFFFFF` |
-| Accent / key name | `TFT_YELLOW` | `#FFFF00` |
-| Credit value | `TFT_GREEN` | `#00FF00` |
-| Muted labels | `TFT_DARKGREY` / `TFT_LIGHTGREY` | — |
-| Dividers | `TFT_DARKGREY` | — |
-| Error state | `TFT_RED` | `#FF0000` |
+Theme-driven palette constants now come from `DisplayUI.h`:
+- `COL_SCREEN_BG`, `COL_HEADER_BG`, `COL_TEXT_PRIMARY`
+- `COL_LABEL`, `COL_MUTED`, `COL_DIVIDER`, `COL_BAR_TRACK`
+- status colors: `STATUS_GREEN`, `STATUS_AMBER`, `STATUS_RED`
+
+Themes:
+- `THEME_DARK`: high contrast dark default
+- `THEME_LIGHT`: white background with darker status colors for readability
+- `THEME_VIVID`: dark background with status-tinted header
 
 To keep the UI clean: **use at most 3 colors per zone**.
 
@@ -65,12 +77,12 @@ To keep the UI clean: **use at most 3 colors per zone**.
 
 ## Anti-Flicker Rules
 
-TFT_eSPI has no double-buffer — overdrawing causes flicker.
+The project redraw strategy is backend-safe (works for TFT_eSPI and Arduino_GFX).
 
 1. **Fill before draw** — always `tft->fillRect(x, y, w, h, BG_COLOR)` the exact region before writing new text or shapes. Do not `fillScreen()` unless changing the entire screen.
-2. **Fixed-width numbers** — use `String(value, 4)` (4 decimal places) so the string width stays constant and the background fill can be pre-sized.
+2. **Stable text footprints** — use compact formatting helpers (example: `fmtK`) where value widths can jump.
 3. **`needsRedraw` flag** — only call `drawUI()` when data actually changes (already implemented via `needsUpdate()`).
-4. **Avoid overlapping text** — when changing font size, always clear the old area first; a size-4 digit is wider than a size-2 digit.
+4. **Avoid overlapping text** — when changing font size, clear old text region first.
 
 ---
 
@@ -84,7 +96,8 @@ TFT_eSPI has no double-buffer — overdrawing causes flicker.
 | 4    | 32 px | Credit value |
 | 6    | 48 px | Large single metric |
 
-Smooth fonts (GFXFF) are enabled — use `tft->loadFont()` for custom TTF glyphs if sharper text is needed.
+Do not rely on custom font APIs that exist in one backend only.
+Use shared methods already exposed via `Display` wrapper (`setTextSize`, `drawString`, `textWidth`, datum alignment).
 
 ---
 
@@ -109,6 +122,7 @@ Always clamp `pct` to `[0.0, 1.0]` before computing `fillW`.
 2. Call it from `drawUI()` based on a state enum or flag.
 3. Clear only the affected zone with `fillRect`; do not `fillScreen`.
 4. Use `MC_DATUM` (middle-center) for centered text, `ML_DATUM` for left-aligned.
+5. Validate on both canvas classes: 320x170 and 240x135.
 
 ---
 
@@ -116,6 +130,7 @@ Always clamp `pct` to `[0.0, 1.0]` before computing `fillW`.
 
 - [ ] No `fillScreen` inside `loop()` or frequent calls
 - [ ] All text regions pre-cleared with `fillRect` matching the font size
-- [ ] Colors match the palette table above
+- [ ] Colors use current theme constants (not hardcoded legacy palette values)
 - [ ] Tested with both success and error states (`currentData.success = false`)
 - [ ] Tested at 3+ API key indices (header label cycles correctly)
+- [ ] Tested at least one touch board and one button board for screen cycling behavior

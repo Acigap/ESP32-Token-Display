@@ -138,11 +138,42 @@ code --install-extension esp32-token-display-1.0.0.vsix --force
 | Tab label | `data-tab` | What it configures |
 |-----------|-----------|-------------------|
 | 🏠 Home | `home` | Getting-started guide |
-| 📡 Device | `device` | WiFi, COM port, upload speed, update interval |
+| 📡 Device | `device` | WiFi, COM port, upload speed, **display theme**, update interval |
 | 🔑 API Keys | `apikeys` | Add/remove OpenRouter & Anthropic keys |
 | 🤖 AI Providers | `anthropic` | Anthropic model/URL/version; OpenRouter URL |
 | ☁️ Claude.ai | `claudeai` | Session key, Org ID, Relay PC IP/port |
 | ⚡ Actions | `actions` | Build, Build & Flash, Serial Monitor, Relay start/stop |
+
+### Display themes (compile-time)
+
+Theme selector lives in 📡 Device; selection is written to `include/config.h` as:
+
+```cpp
+#define DISPLAY_THEME THEME_DARK   // or THEME_LIGHT, THEME_VIVID
+```
+
+Palette is defined in [include/DisplayUI.h](include/DisplayUI.h) under `#if DISPLAY_THEME == …` blocks
+(colours: `COL_SCREEN_BG`, `COL_TEXT_PRIMARY`, `COL_LABEL`, `STATUS_GREEN/AMBER/RED`, …).
+Changing theme **requires a re-flash** — it's not runtime-switchable.
+
+| ID            | Background | Text       | Notes                              |
+|---------------|-----------|------------|------------------------------------|
+| `THEME_DARK`  | black     | white/grey | default                            |
+| `THEME_LIGHT` | white     | black      | uses darker status colours         |
+| `THEME_VIVID` | black     | white/grey | header tinted green/amber/red by % |
+
+---
+
+## ESP32-S3-Touch-LCD-1.9 Support
+
+The Waveshare ESP32-S3-Touch-LCD-1.9 board (env: `esp32s3-touch-lcd-1_9`) uses
+**Arduino_GFX** instead of TFT_eSPI, because TFT_eSPI 2.5.43 crashes on Arduino-ESP32 v3.x
+(`StoreProhibited` inside the SPI HAL). [include/GfxDisplay.h](include/GfxDisplay.h) provides
+a thin adapter so DisplayUI sees a single `Display*` type on every board.
+
+Touch IC is **CST816** (I2C @ 0x15, SDA=47/SCL=48), not FT3168. Backlight on GPIO 14 is **active LOW**.
+Octal PSRAM (`qio_opi`) is required — default quad PSRAM panics with
+"PSRAM chip is not connected, or wrong PSRAM line mode".
 
 ---
 

@@ -15,7 +15,17 @@
       "Bash(tasklist /FI \"IMAGENAME eq chrome.exe\" /NH)",
       "PowerShell(Get-PnpDevice | Where-Object { $_.Status -ne 'OK' } | Select-Object Status, Class, FriendlyName, InstanceId | Format-Table -AutoSize)",
       "PowerShell(Get-WmiObject Win32_VideoController)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell(pio run -e ttgo-t-display 2>&1)",
+      "PowerShell(& \"$env:USERPROFILE\\\\.platformio\\\\penv\\\\Scripts\\\\pio.exe\" run -e ttgo-t-display 2>&1 | Select-Object -Last 40)",
+      "PowerShell(& \"$env:USERPROFILE\\\\.platformio\\\\penv\\\\Scripts\\\\pio.exe\" run -e esp32dev 2>&1 | Select-Object -Last 12)",
+      "WebFetch(domain:www.waveshare.com)",
+      "WebSearch",
+      "Bash(mkdir -p e:/Gap_code/TokenDisply/poc/esp32s3_touch_lcd_1_9/src)",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\acigap\\\\.platformio\\\\penv\\\\Scripts\\\\platformio.exe\" run -e esp32s3-touch-lcd-1_9 2>&1 | Select-Object -Last 15)"
+    ],
+    "additionalDirectories": [
+      "e:\\Gap_code\\TokenDisply\\poc\\esp32s3_touch_lcd_1_9"
     ]
   }
 }

@@ -45,16 +45,32 @@ const APIKeyConfig API_KEYS[] = {
 const int NUM_API_KEYS = sizeof(API_KEYS) / sizeof(APIKeyConfig);
 
 // ========================================
-// Display Configuration (landscape 320x170)
+// Display Configuration
 // ========================================
-// ST7789 1.9" 170x320 ใช้ใน landscape mode = 320x170
+// Default: ST7789 1.9" 170×320 in landscape = 320×170
+// TTGO T-Display: overridden by build flags (-DSCREEN_WIDTH=240 -DSCREEN_HEIGHT=135)
+#ifndef SCREEN_WIDTH
 #define SCREEN_WIDTH  320
+#endif
+#ifndef SCREEN_HEIGHT
 #define SCREEN_HEIGHT 170
+#endif
 
 // สีของ UI (ใช้ TFT_eSPI color constants)
+// หมายเหตุ: ค่าเหล่านี้จะถูก override โดย DISPLAY_THEME ด้านล่าง
+//          (DisplayUI.h ใช้ palette ตาม theme ที่เลือก)
 #define BACKGROUND_COLOR TFT_BLACK
-#define TEXT_COLOR TFT_WHITE
-#define HIGHLIGHT_COLOR TFT_YELLOW
+#define TEXT_COLOR       TFT_WHITE
+#define HIGHLIGHT_COLOR  TFT_YELLOW
+
+// ========================================
+// Display Theme
+// ========================================
+//   THEME_DARK   — black bg, light text  (default)
+//   THEME_LIGHT  — white bg, dark text
+//   THEME_VIVID  — black bg with status-tinted header strip
+// เลือกผ่านหน้า 📡 Device ของ VS Code extension แล้วกด 💾 Save Config
+#define DISPLAY_THEME THEME_DARK
 
 // ========================================
 // Button Configuration

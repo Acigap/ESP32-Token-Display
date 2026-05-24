@@ -8,6 +8,7 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.vscode/esp32-display.json
 
 # ── Secrets / Credentials ─────────────────────────────────
 # NEVER commit actual WiFi credentials or API keys.
