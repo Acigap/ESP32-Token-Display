@@ -174,6 +174,16 @@ private:
     int sw() const { return tft->width(); }
     int sh() const { return tft->height(); }
 
+    int totalPages() const {
+        // API key pages + 1 relay page
+        return max(1, numKeys + 1);
+    }
+
+    int currentPageNumber() const {
+        if (_page == 1) return totalPages();
+        return constrain(selectedKeyIndex + 1, 1, totalPages());
+    }
+
     // ── pctUsed — works for both modes ────────────────────
     float pctUsed() const {
         if (currentData.isAnthropicMode) {
@@ -253,7 +263,7 @@ private:
         tft->setTextDatum(MR_DATUM);
         tft->setTextSize(1);
         tft->setTextColor(TFT_LIGHTGREY, bgCol);
-        tft->drawString(String(selectedKeyIndex + 1) + "/" + String(numKeys),
+        tft->drawString(String(currentPageNumber()) + "/" + String(totalPages()),
                         sw() - 4, cy);
 
         tft->drawFastHLine(0, HEADER_H - 1, sw(), COL_DIVIDER);
@@ -533,7 +543,8 @@ private:
         tft->setTextDatum(MR_DATUM);
         tft->setTextSize(1);
         tft->setTextColor(COL_MUTED, bgCol);
-        tft->drawString("relay", sw() - 4, cy);
+        tft->drawString(String(currentPageNumber()) + "/" + String(totalPages()),
+                sw() - 4, cy);
 
         tft->drawFastHLine(0, HEADER_H - 1, sw(), COL_DIVIDER);
     }
