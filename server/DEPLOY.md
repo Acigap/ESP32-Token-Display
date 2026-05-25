@@ -69,7 +69,7 @@ sudo systemctl status claude-relay.service
 
 ```bash
 # SSH เข้า RPI
-ssh pi@192.168.0.43
+ssh YOUR_RPI_USER@YOUR_RPI_IP
 
 # เพิ่มสิทธิ์ sudo สำหรับคำสั่ง systemctl
 sudo visudo
@@ -89,7 +89,7 @@ pi ALL=(ALL) NOPASSWD: /bin/systemctl status claude-relay.service
 
 เปิดเว็บเบราว์เซอร์:
 ```
-http://192.168.0.43:8765
+http://YOUR_RPI_IP:8765
 ```
 
 ฟีเจอร์:
@@ -103,7 +103,7 @@ http://192.168.0.43:8765
 #### GET /usage
 ดึงข้อมูล usage จาก Claude.ai
 ```bash
-curl http://192.168.0.43:8765/usage
+curl http://YOUR_RPI_IP:8765/usage
 ```
 
 Response:
@@ -120,31 +120,31 @@ Response:
 #### GET /service/status
 ตรวจสอบสถานะ service
 ```bash
-curl http://192.168.0.43:8765/service/status
+curl http://YOUR_RPI_IP:8765/service/status
 ```
 
 #### POST /service/start
 เริ่ม service
 ```bash
-curl -X POST http://192.168.0.43:8765/service/start
+curl -X POST http://YOUR_RPI_IP:8765/service/start
 ```
 
 #### POST /service/stop
 หยุด service
 ```bash
-curl -X POST http://192.168.0.43:8765/service/stop
+curl -X POST http://YOUR_RPI_IP:8765/service/stop
 ```
 
 #### POST /service/restart
 รีสตาร์ท service
 ```bash
-curl -X POST http://192.168.0.43:8765/service/restart
+curl -X POST http://YOUR_RPI_IP:8765/service/restart
 ```
 
 #### GET /service/logs
 ดู logs ล่าสุด 50 บรรทัด
 ```bash
-curl http://192.168.0.43:8765/service/logs
+curl http://YOUR_RPI_IP:8765/service/logs
 ```
 
 ## 🔧 การจัดการ Service
@@ -195,10 +195,10 @@ cd D:\git\ESP32-Token-Display\server
 bash deploy-to-rpi.sh
 
 # หรือ copy ไฟล์เดียว
-scp relay.py pi@192.168.0.43:/home/pi/claude-relay/
+scp relay.py YOUR_RPI_USER@YOUR_RPI_IP:/home/pi/claude-relay/
 
 # SSH เข้า RPI และรีสตาร์ท
-ssh pi@192.168.0.43
+ssh YOUR_RPI_USER@YOUR_RPI_IP
 sudo systemctl restart claude-relay.service
 ```
 
@@ -208,7 +208,7 @@ sudo systemctl restart claude-relay.service
 
 ```cpp
 // ใน DisplayUI.h หรือ main.cpp
-const char* RELAY_SERVER = "http://192.168.0.43:8765";
+const char* RELAY_SERVER = "http://YOUR_RPI_IP:8765";
 
 void fetchUsage() {
   HTTPClient http;
@@ -337,7 +337,7 @@ server/
 
 ### Scenario 1: ตรวจสอบ usage จาก browser
 
-1. เปิด `http://192.168.0.43:8765`
+1. เปิด `http://YOUR_RPI_IP:8765`
 2. ดูสถิติ Session & Weekly usage
 3. รีเฟรชอัตโนมัติทุก 30 วินาที
 
@@ -369,5 +369,5 @@ sudo journalctl -u claude-relay.service -f
 
 ✅ **ตอนนี้ระบบพร้อมใช้งานแล้ว!**
 
-ESP32 สามารถเรียก `http://192.168.0.43:8765/usage` เพื่อดึงข้อมูล Claude usage  
+ESP32 สามารถเรียก `http://YOUR_RPI_IP:8765/usage` เพื่อดึงข้อมูล Claude usage  
 และคุณสามารถจัดการ service ผ่าน web interface ได้สะดวก!

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deploy script for Claude Relay on Raspberry Pi
-# Run from Windows: ssh pi@192.168.0.43 < deploy.sh
+# Run from Windows: ssh YOUR_RPI_USER@YOUR_RPI_IP < deploy.sh
 
 set -e
 
@@ -42,6 +42,6 @@ echo ""
 echo "Service status:"
 sudo systemctl status claude-relay.service --no-pager -l
 echo ""
-echo "📊 Web interface: http://192.168.0.43:8765"
+echo "📊 Web interface: http://YOUR_RPI_IP:8765"
 echo "📝 View logs: sudo journalctl -u claude-relay.service -f"
 echo "🔧 Edit config: nano /home/pi/claude-relay/.env"

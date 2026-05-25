@@ -1,9 +1,24 @@
 # Claude Relay Server - Deploy to Raspberry Pi
 # PowerShell deployment script for Windows
 
-$RPI_HOST = "pi@192.168.0.43"
-$RPI_DIR = "/home/pi/claude-relay"
-$SERVER_DIR = "D:\git\ESP32-Token-Display\server"
+# Load configuration from .env file
+$envFile = "$PSScriptRoot\.env"
+if (-not (Test-Path $envFile)) {
+    Write-Host "❌ Error: .env file not found" -ForegroundColor Red
+    Write-Host "Please copy .env.example to .env and configure your Raspberry Pi settings" -ForegroundColor Yellow
+    exit 1
+}
+
+# Parse .env file
+Get-Content $envFile | ForEach-Object {
+    if ($_ -match '^([^#][^=]+)=(.*)$') {
+        $key = $matches[1].Trim()
+        $value = $matches[2].Trim().Trim('"')
+        Set-Variable -Name $key -Value $value -Scope Script
+    }
+}
+
+$SERVER_DIR = $PSScriptRoot
 
 Write-Host "🚀 Deploying Claude Relay Server to Raspberry Pi..." -ForegroundColor Cyan
 Write-Host ""
@@ -65,8 +80,9 @@ Write-Host "=" -ForegroundColor Green -NoNewline
 Write-Host "================================" -ForegroundColor Green
 Write-Host "✅ Deployment completed successfully!" -ForegroundColor Green
 Write-Host ""
+$rpiIp = $RPI_HOST -replace '^.*@', ''
 Write-Host "🌐 Web Interface: " -NoNewline
-Write-Host "http://192.168.0.43:8765" -ForegroundColor Cyan
+Write-Host "http://$rpiIp:8765" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "📋 Useful commands:" -ForegroundColor Yellow
 Write-Host "  View logs:    " -NoNewline -ForegroundColor Gray
