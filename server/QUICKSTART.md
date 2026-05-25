@@ -23,6 +23,8 @@ notepad .env
 CLAUDEAI_SESSION=sk-ant-sid01-xxxxx...
 LASTACTIVE_ORG=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 RELAY_PORT=8765
+RPI_HOST=pi@YOUR_RPI_IP
+RPI_DIR=/home/pi/claude-relay
 ```
 
 ### 3️⃣ Deploy!
@@ -43,7 +45,7 @@ bash deploy-to-rpi.sh
 
 SSH เข้า RPI:
 ```bash
-ssh pi@192.168.0.43
+ssh pi@YOUR_RPI_IP
 sudo visudo
 ```
 
@@ -61,7 +63,7 @@ pi ALL=(ALL) NOPASSWD: /bin/systemctl status claude-relay.service
 
 เปิดเว็บเบราว์เซอร์:
 ```
-http://192.168.0.43:8765
+http://YOUR_RPI_IP:8765
 ```
 
 เสร็จแล้ว! 🎉
@@ -72,7 +74,7 @@ http://192.168.0.43:8765
 
 เปลี่ยน URL ใน ESP32 code:
 ```cpp
-const char* USAGE_URL = "http://192.168.0.43:8765/usage";
+const char* USAGE_URL = "http://YOUR_RPI_IP:8765/usage";
 ```
 
 ---
@@ -81,16 +83,16 @@ const char* USAGE_URL = "http://192.168.0.43:8765/usage";
 
 ```bash
 # รีสตาร์ท service (จาก Windows)
-ssh pi@192.168.0.43 "sudo systemctl restart claude-relay.service"
+ssh pi@YOUR_RPI_IP "sudo systemctl restart claude-relay.service"
 
 # ดู logs
-ssh pi@192.168.0.43 "sudo journalctl -u claude-relay.service -f"
+ssh pi@YOUR_RPI_IP "sudo journalctl -u claude-relay.service -f"
 
 # ตรวจสอบสถานะ
-ssh pi@192.168.0.43 "sudo systemctl status claude-relay.service"
+ssh pi@YOUR_RPI_IP "sudo systemctl status claude-relay.service"
 ```
 
-หรือใช้ Web Interface ที่ `http://192.168.0.43:8765` ได้เลย! 😊
+หรือใช้ Web Interface ที่ `http://YOUR_RPI_IP:8765` ได้เลย! 😊
 
 ---
 
@@ -98,14 +100,14 @@ ssh pi@192.168.0.43 "sudo systemctl status claude-relay.service"
 
 **Service ไม่ทำงาน?**
 ```bash
-ssh pi@192.168.0.43
+ssh pi@YOUR_RPI_IP
 cd /home/pi/claude-relay
 python3 relay.py
 # ดู error message
 ```
 
 **เปลี่ยน IP?**
-แก้ไข `$RPI_HOST` ใน `deploy-to-rpi.ps1` หรือ `deploy-to-rpi.sh`
+แก้ไข `RPI_HOST` ในไฟล์ `.env` แล้วรัน deploy ใหม่
 
 **อัพเดทโค้ด?**
 รันคำสั่ง deploy ใหม่อีกครั้ง

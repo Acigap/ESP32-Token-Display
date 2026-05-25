@@ -23,6 +23,8 @@
 CLAUDEAI_SESSION=sk-ant-sid01-xxxxx...
 LASTACTIVE_ORG=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 RELAY_PORT=8765
+RPI_HOST=pi@YOUR_RPI_IP_ADDRESS
+RPI_DIR=/home/pi/claude-relay
 ```
 
 ### ขั้นตอนที่ 2: Deploy ไปยัง Raspberry Pi
@@ -32,8 +34,6 @@ RELAY_PORT=8765
 ```powershell
 cd D:\git\ESP32-Token-Display\server
 
-# แก้ไข deploy-to-rpi.sh ถ้า IP ของ RPI ต่างจาก 192.168.0.43
-
 # Deploy (ใช้ Git Bash หรือ WSL)
 bash deploy-to-rpi.sh
 ```
@@ -42,14 +42,14 @@ bash deploy-to-rpi.sh
 
 ```bash
 # 1. Copy ไฟล์ไปยัง RPI
-scp relay.py pi@192.168.0.43:/home/pi/claude-relay/
-scp claude-relay.service pi@192.168.0.43:/home/pi/claude-relay/
-scp requirements.txt pi@192.168.0.43:/home/pi/claude-relay/
-scp web-interface.html pi@192.168.0.43:/home/pi/claude-relay/index.html
-scp .env pi@192.168.0.43:/home/pi/claude-relay/
+scp relay.py pi@YOUR_RPI_IP:/home/pi/claude-relay/
+scp claude-relay.service pi@YOUR_RPI_IP:/home/pi/claude-relay/
+scp requirements.txt pi@YOUR_RPI_IP:/home/pi/claude-relay/
+scp web-interface.html pi@YOUR_RPI_IP:/home/pi/claude-relay/index.html
+scp .env pi@YOUR_RPI_IP:/home/pi/claude-relay/
 
 # 2. SSH เข้า RPI
-ssh pi@192.168.0.43
+ssh pi@YOUR_RPI_IP
 
 # 3. ติดตั้ง dependencies
 cd /home/pi/claude-relay

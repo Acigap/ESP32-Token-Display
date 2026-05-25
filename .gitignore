@@ -16,6 +16,7 @@
 include/config.h
 .env
 poc/.env
+server/.env
 
 # ── OS / Toolchain noise ──────────────────────────────────
 .DS_Store

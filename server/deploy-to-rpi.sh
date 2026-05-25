@@ -1,8 +1,18 @@
 #!/bin/bash
 # Quick script to copy files to Raspberry Pi and deploy
 
-RPI_HOST="pi@192.168.0.43"
-RPI_DIR="/home/pi/claude-relay"
+# Load configuration from .env file
+if [ -f .env ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+else
+    echo "❌ Error: .env file not found"
+    echo "Please copy .env.example to .env and configure your Raspberry Pi settings"
+    exit 1
+fi
+
+# Use environment variables or defaults
+RPI_HOST="${RPI_HOST:-pi@192.168.0.43}"
+RPI_DIR="${RPI_DIR:-/home/pi/claude-relay}"
 
 echo "📤 Copying files to Raspberry Pi..."
 
@@ -43,4 +53,4 @@ sudo systemctl status claude-relay.service --no-pager -l
 EOF
 
 echo ""
-echo "✅ Done! Access web interface at: http://192.168.0.43:8765"
+echo "✅ Done! Access web interface at: http://${RPI_HOST#*@}:8765"

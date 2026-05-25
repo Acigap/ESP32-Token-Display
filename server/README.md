@@ -61,6 +61,8 @@ Add your credentials:
 CLAUDEAI_SESSION=sk-ant-sid01-xxxxx...
 LASTACTIVE_ORG=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 RELAY_PORT=8765
+RPI_HOST=pi@YOUR_RPI_IP
+RPI_DIR=/home/pi/claude-relay
 ```
 
 ### 3. Deploy
@@ -79,7 +81,7 @@ bash deploy-to-rpi.sh
 
 ### Web Interface
 
-Open browser: `http://192.168.0.43:8765`
+Open browser: `http://YOUR_RPI_IP:8765`
 
 Features:
 - View Claude.ai usage statistics
@@ -92,7 +94,7 @@ Features:
 #### `GET /usage`
 Get Claude.ai usage data
 ```bash
-curl http://192.168.0.43:8765/usage
+curl http://YOUR_RPI_IP:8765/usage
 ```
 
 Response:
@@ -151,7 +153,7 @@ In your ESP32 code:
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-const char* RELAY_SERVER = "http://192.168.0.43:8765";
+const char* RELAY_SERVER = "http://YOUR_RPI_IP:8765";
 
 void fetchClaudeUsage() {
   HTTPClient http;
