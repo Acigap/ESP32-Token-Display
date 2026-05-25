@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Relay Server - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+        
+        .status-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #f0f0f0;
+            border-radius: 13px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-start {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-stop {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-restart {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .btn-status {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-refresh {
+            background: #667eea;
+            color: white;
+        }
+        
+        .service-status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .service-status.active {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .service-status.inactive {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .service-status.unknown {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+        
+        .log-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .updating {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Claude Relay Server</h1>
+            <p>Dashboard สำหรับตรวจสอบและจัดการ Claude.ai Usage Relay</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">📊 Claude.ai Usage Statistics</div>
+            <div id="usage-data" class="loading">กำลังโหลดข้อมูล...</div>
+            <div class="buttons" style="margin-top: 15px;">
+                <button class="btn btn-refresh" onclick="updateUsage()">🔄 Refresh Usage</button>
+            </div>
+        </div>
+        
+        <div class="card" id="service-management-card" style="display: none;">
+            <div class="card-title">⚙️ Service Management (Linux Only)</div>
+            <div id="service-status" class="service-status unknown">
+                สถานะ: กำลังตรวจสอบ...
+            </div>
+            <div class="buttons">
+                <button class="btn btn-start" onclick="controlService('start')">▶️ Start</button>
+                <button class="btn btn-stop" onclick="controlService('stop')">⏹️ Stop</button>
+                <button class="btn btn-restart" onclick="controlService('restart')">🔄 Restart</button>
+                <button class="btn btn-status" onclick="updateServiceStatus()">📋 Status</button>
+            </div>
+            <div id="service-output"></div>
+        </div>
+        
+        <div class="card" id="logs-card" style="display: none;">
+            <div class="card-title">📝 Service Logs (Last 50 lines)</div>
+            <div id="logs" class="log-output">กำลังโหลด logs...</div>
+            <div class="buttons" style="margin-top: 15px;">
+                <button class="btn btn-refresh" onclick="updateLogs()">🔄 Refresh Logs</button>
+            </div>
+        </div>
+        
+        <div class="card" id="windows-info" style="display: none;">
+            <div class="card-title">💡 วิธีใช้งานบน Windows</div>
+            <div style="padding: 15px; background: #e7f3ff; border-radius: 8px; color: #004085;">
+                <p style="margin-bottom: 10px;">🖥️ <strong>บน Windows:</strong></p>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>เปิด PowerShell/Terminal ในโฟลเดอร์ <code>server</code></li>
+                    <li>รัน: <code>python relay.py</code></li>
+                    <li>Server จะทำงานที่ <code>http://localhost:8765</code></li>
+                    <li>เปิดหน้าเว็บนี้เพื่อดูข้อมูล usage แบบ real-time</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefresh = null;
+        let isLinux = false;
+
+        // Check if server is running on Linux (has systemctl support)
+        async function checkPlatform() {
+            try {
+                const response = await fetch('/service/status');
+                const data = await response.json();
+                
+                // If we get a proper response, assume it's Linux with systemctl
+                if (response.ok && !data.error) {
+                    isLinux = true;
+                    document.getElementById('service-management-card').style.display = 'block';
+                    document.getElementById('logs-card').style.display = 'block';
+                    document.getElementById('windows-info').style.display = 'none';
+                } else {
+                    // Windows or systemctl not available
+                    isLinux = false;
+                    document.getElementById('service-management-card').style.display = 'none';
+                    document.getElementById('logs-card').style.display = 'none';
+                    document.getElementById('windows-info').style.display = 'block';
+                }
+            } catch (error) {
+                // Assume Windows if service endpoints don't exist
+                isLinux = false;
+                document.getElementById('service-management-card').style.display = 'none';
+                document.getElementById('logs-card').style.display = 'none';
+                document.getElementById('windows-info').style.display = 'block';
+            }
+        }
+
+        // Update usage data
+        async function updateUsage() {
+            try {
+                const response = await fetch('/usage');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    const html = `
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <div class="status-label">Session Usage</div>
+                                <div class="status-value">${data.session_pct.toFixed(1)}%</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${data.session_pct}%">
+                                        ${data.session_pct.toFixed(1)}%
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                                    รีเซ็ตใน: ${data.session_resets_in}
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-label">Weekly Usage</div>
+                                <div class="status-value">${data.weekly_pct.toFixed(1)}%</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${data.weekly_pct}%">
+                                        ${data.weekly_pct.toFixed(1)}%
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                                    รีเซ็ตใน: ${data.weekly_resets_in}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 0.9em; color: #666;">
+                            อัพเดทล่าสุด: ${new Date().toLocaleString('th-TH')}
+                        </div>
+                    `;
+                    document.getElementById('usage-data').innerHTML = html;
+                } else {
+                    document.getElementById('usage-data').innerHTML = `
+                        <div class="error-message">
+                            ❌ Error: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('usage-data').innerHTML = `
+                    <div class="error-message">
+                        ❌ ไม่สามารถเชื่อมต่อกับ relay server: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Update service status
+        async function updateServiceStatus() {
+            try {
+                const response = await fetch('/service/status');
+                const data = await response.json();
+                const statusDiv = document.getElementById('service-status');
+                
+                if (data.active) {
+                    statusDiv.className = 'service-status active';
+                    statusDiv.innerHTML = `
+                        ✅ Service: <strong>ACTIVE (${data.status})</strong><br>
+                        PID: ${data.pid || 'N/A'}<br>
+                        Memory: ${data.memory || 'N/A'}<br>
+                        Uptime: ${data.uptime || 'N/A'}
+                    `;
+                } else {
+                    statusDiv.className = 'service-status inactive';
+                    statusDiv.innerHTML = `
+                        ⛔ Service: <strong>INACTIVE</strong><br>
+                        Status: ${data.status}
+                    `;
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('service-status');
+                statusDiv.className = 'service-status unknown';
+                statusDiv.innerHTML = `⚠️ ไม่สามารถตรวจสอบสถานะ service ได้: ${error.message}`;
+            }
+        }
+
+        // Control service (start/stop/restart)
+        async function controlService(action) {
+            const outputDiv = document.getElementById('service-output');
+            outputDiv.innerHTML = `<div class="loading">กำลัง${action} service...</div>`;
+            
+            try {
+                const response = await fetch(`/service/${action}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    outputDiv.innerHTML = `
+                        <div class="success-message">
+                            ✅ ${action.toUpperCase()} สำเร็จ!<br>
+                            ${data.message}
+                        </div>
+                    `;
+                    setTimeout(updateServiceStatus, 1000);
+                } else {
+                    outputDiv.innerHTML = `
+                        <div class="error-message">
+                            ❌ ${action.toUpperCase()} ล้มเหลว<br>
+                            ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                outputDiv.innerHTML = `
+                    <div class="error-message">
+                        ❌ เกิดข้อผิดพลาด: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Update logs
+        async function updateLogs() {
+            try {
+                const response = await fetch('/service/logs');
+                const data = await response.json();
+                
+                if (data.logs) {
+                    document.getElementById('logs').textContent = data.logs;
+                } else {
+                    document.getElementById('logs').textContent = 'ไม่มี logs';
+                }
+            } catch (error) {
+                document.getElementById('logs').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Refresh all data
+        function refreshAll() {
+            updateUsage();
+            if (isLinux) {
+                updateServiceStatus();
+                updateLogs();
+            }
+        }
+
+        // Auto-refresh every 30 seconds
+        function startAutoRefresh() {
+            refreshAll();
+            autoRefresh = setInterval(refreshAll, 30000);
+        }
+
+        // Initialize
+        window.addEventListener('load', async () => {
+            await checkPlatform();
+            startAutoRefresh();
+        });
+    </script>
+</body>
+</html>

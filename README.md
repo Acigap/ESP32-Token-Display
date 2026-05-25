@@ -190,9 +190,11 @@ pio run -t upload --upload-port COM8
 
 ### 4. เริ่ม Relay Server (สำหรับ Claude.ai)
 
-ต้องการ Python + `curl_cffi`:
+**บน Windows:**
+
+ต้องการ Python + dependencies:
 ```bash
-pip install curl_cffi flask python-dotenv
+pip install curl_cffi python-dotenv
 ```
 
 **Tab: Actions** → กด **▶ Start Relay**
@@ -203,7 +205,21 @@ cd server
 python relay.py
 ```
 
-Relay server จะรันบน `http://localhost:8765/usage`
+Relay server จะรันบน `http://localhost:8765`  
+เปิดเว็บ dashboard: `http://localhost:8765`
+
+**บน Raspberry Pi (ทำครั้งเดียว):**
+
+Deploy ไปยัง Raspberry Pi เพื่อให้รันเป็น service:
+```powershell
+cd D:\git\ESP32-Token-Display\server
+.\deploy-to-rpi.ps1
+```
+
+หลัง deploy แล้ว relay server จะรันอัตโนมัติตอนบูต  
+เปิดเว็บ dashboard: `http://192.168.0.43:8765`
+
+ดูคู่มือเต็ม: [server/QUICKSTART.md](server/QUICKSTART.md)
 
 ---
 

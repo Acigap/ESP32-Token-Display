@@ -1,0 +1,19 @@
+[Unit]
+Description=Claude.ai Usage Relay Server
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/claude-relay
+ExecStart=/usr/bin/python3 /home/pi/claude-relay/relay.py
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/home/pi/claude-relay/relay.log
+StandardError=append:/home/pi/claude-relay/relay.log
+
+# Environment
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+
+[Install]
+WantedBy=multi-user.target

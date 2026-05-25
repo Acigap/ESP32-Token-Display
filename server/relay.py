@@ -17,7 +17,7 @@ ESP32 will GET http://<pc-ip>:8765/usage and receive:
 }
 """
 
-import os, json, time
+import os, json, time, subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -108,16 +108,146 @@ def fetch_usage():
         return {"ok": False, "error": str(e)}
 
 
+def get_service_status():
+    """Get systemd service status"""
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", "claude-relay.service"],
+            capture_output=True, text=True, timeout=5
+        )
+        is_active = result.stdout.strip() == "active"
+        
+        # Get detailed status
+        status_result = subprocess.run(
+            ["systemctl", "status", "claude-relay.service", "--no-pager"],
+            capture_output=True, text=True, timeout=5
+        )
+        status_text = status_result.stdout
+        
+        # Parse status info
+        pid = memory = uptime = None
+        for line in status_text.split('\n'):
+            if 'Main PID:' in line:
+                pid = line.split('Main PID:')[1].split()[0]
+            elif 'Memory:' in line:
+                memory = line.split('Memory:')[1].strip()
+            elif 'Active:' in line and 'since' in line:
+                uptime_part = line.split('since')[1].strip()
+                uptime = uptime_part.split(';')[0] if ';' in uptime_part else uptime_part
+        
+        return {
+            "active": is_active,
+            "status": result.stdout.strip(),
+            "pid": pid,
+            "memory": memory,
+            "uptime": uptime
+        }
+    except Exception as e:
+        return {"active": False, "status": "unknown", "error": str(e)}
+
+
+def control_service(action):
+    """Control systemd service (start/stop/restart)"""
+    try:
+        result = subprocess.run(
+            ["sudo", "systemctl", action, "claude-relay.service"],
+            capture_output=True, text=True, timeout=10
+        )
+        
+        if result.returncode == 0:
+            return {
+                "success": True,
+                "message": f"Service {action} completed successfully",
+                "output": result.stdout
+            }
+        else:
+            return {
+                "success": False,
+                "error": result.stderr or f"Command failed with exit code {result.returncode}",
+                "output": result.stdout
+            }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def get_service_logs():
+    """Get last 50 lines of service logs"""
+    try:
+        result = subprocess.run(
+            ["journalctl", "-u", "claude-relay.service", "-n", "50", "--no-pager"],
+            capture_output=True, text=True, timeout=5
+        )
+        return {"logs": result.stdout}
+    except Exception as e:
+        return {"logs": f"Error fetching logs: {str(e)}"}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         print(f"[{self.client_address[0]}] {fmt % args}")
 
     def do_GET(self):
-        if self.path == "/usage" or self.path == "/":
+        if self.path == "/usage" or self.path == "/api/usage":
             data   = fetch_usage()
             body   = json.dumps(data, ensure_ascii=False).encode()
             status = 200 if data.get("ok") else 503
             self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        
+        elif self.path == "/" or self.path == "/index.html":
+            # Serve web interface
+            try:
+                # Try both web-interface.html and index.html
+                web_file = Path(__file__).parent / "web-interface.html"
+                if not web_file.exists():
+                    web_file = Path(__file__).parent / "index.html"
+                
+                if web_file.exists():
+                    body = web_file.read_bytes()
+                else:
+                    body = b"<h1>Claude Relay Server</h1><p>Web interface not found. Copy web-interface.html or index.html to this directory.</p>"
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                self.send_error(500, str(e))
+        
+        elif self.path == "/service/status":
+            data = get_service_status()
+            body = json.dumps(data, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        
+        elif self.path == "/service/logs":
+            data = get_service_logs()
+            body = json.dumps(data, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        
+        else:
+            self.send_response(404)
+            self.end_headers()
+    
+    def do_POST(self):
+        if self.path in ["/service/start", "/service/stop", "/service/restart"]:
+            action = self.path.split("/")[-1]
+            data = control_service(action)
+            body = json.dumps(data, ensure_ascii=False).encode()
+            self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Access-Control-Allow-Origin", "*")
