@@ -1,5 +1,12 @@
 # Quick Start
 
+## Prerequisites
+
+ก่อนเริ่มใช้งาน ให้ติดตั้งเครื่องมือดังนี้ก่อน:
+- ESP-IDF
+- PlatformIO
+- VS Code
+
 ## 1. ติดตั้ง Extension
 
 ใน VS Code: **Extensions** → `···` → **Install from VSIX**  

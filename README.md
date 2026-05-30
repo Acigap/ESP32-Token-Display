@@ -153,6 +153,14 @@ BOOT button วนหน้าจอตามลำดับ: **Key 1 → Key 2 
 
 ## Setup
 
+### Prerequisites
+
+ก่อนเริ่มตั้งค่า โปรดติดตั้งเครื่องมือเหล่านี้ให้เรียบร้อย:
+
+- **ESP-IDF** (ใช้สำหรับ toolchain และ workflow ฝั่ง Espressif)
+- **PlatformIO** (ใช้สำหรับ build/flash firmware ในโปรเจกต์นี้)
+- **VS Code** (สำหรับใช้งาน extension)
+
 ### 1. ติดตั้ง Extension
 
 ติดตั้ง **ESP32 Token Display Config** extension ใน VS Code (ไฟล์ `.vsix` ใน `vscode-extension/`)
