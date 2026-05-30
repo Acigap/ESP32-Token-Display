@@ -97,6 +97,7 @@ Press **💾 Save Config** — this writes `include/config.h`, `server/.env`, an
 In **📡 Device** tab, set Board to match hardware:
 - `esp32dev` for classic ESP32 1.9 inch board
 - `esp32s3-touch-lcd-1_9` for Waveshare ESP32-S3 Touch LCD 1.9
+- `lilygo-t-display-s3` for LilyGO T-Display-S3
 - `ttgo-t-display` for TTGO T-Display
 
 This affects build flags, display backend, input model, and upload behavior.
@@ -132,7 +133,7 @@ pio device monitor -p COM6 -b 115200
 ```
 
 If flash fails:
-- `esp32dev` / `ttgo-t-display`: hold **BOOT**, press **EN/RESET**, release **BOOT**, retry.
+- `esp32dev` / `ttgo-t-display` / `lilygo-t-display-s3`: hold **BOOT**, press **EN/RESET**, release **BOOT**, retry.
 - `esp32s3-touch-lcd-1_9`: verify board env and COM first; BOOT sequence is usually not required.
 
 For S3 touch board, runtime navigation uses touch tap (CST816), not BOOT button.

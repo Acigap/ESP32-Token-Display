@@ -4,7 +4,7 @@ description: >
   Guide for designing clean, stable, and visually appealing UI for
   TokenDisplay across supported TFT boards. Use this when asked to improve
   layout, fix flickering, change colors, add new screens, or redesign display
-  behavior for esp32dev / esp32s3-touch-lcd-1_9 / ttgo-t-display.
+  behavior for esp32dev / esp32s3-touch-lcd-1_9 / lilygo-t-display-s3 / ttgo-t-display.
 ---
 
 ## Canvas
@@ -13,6 +13,7 @@ description: >
 |-----|---------|-----------------------------|
 | `esp32dev` | TFT_eSPI | 320 × 170 |
 | `esp32s3-touch-lcd-1_9` | Arduino_GFX via `Display` wrapper | 320 × 170 |
+| `lilygo-t-display-s3` | TFT_eSPI | 320 × 170 |
 | `ttgo-t-display` | TFT_eSPI | 240 × 135 |
 
 Common rules:

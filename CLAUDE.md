@@ -70,6 +70,12 @@ TokenDisply/
 **SPI pins (internal, already set in `platformio.ini` build_flags):**
 MOSI=23 SCLK=18 CS=15 DC=2 RST=4 BL=32
 
+### Additional supported boards
+
+- `esp32s3-touch-lcd-1_9` (Waveshare): Arduino_GFX + CST816 touch input
+- `ttgo-t-display`: TFT_eSPI, 240x135 landscape
+- `lilygo-t-display-s3`: TFT_eSPI with ST7789 8-bit parallel bus
+
 ---
 
 ## Config Files
@@ -97,9 +103,11 @@ cp include/config.h.example include/config.h
 ```powershell
 # Compile only
 pio run -e esp32dev
+pio run -e lilygo-t-display-s3
 
 # Compile + flash (ESP32 on configured COM port)
 pio run -e esp32dev --target upload
+pio run -e lilygo-t-display-s3 --target upload
 
 # Serial monitor
 pio device monitor -p COM6 -b 115200 --filter esp32_exception_decoder

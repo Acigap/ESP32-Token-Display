@@ -78,6 +78,7 @@ Fix option A (build all envs in one job):
   run: |
     pio run -e esp32dev
     pio run -e esp32s3-touch-lcd-1_9
+    pio run -e lilygo-t-display-s3
     pio run -e ttgo-t-display
 ```
 
@@ -85,7 +86,7 @@ Fix option B (matrix):
 ```yaml
 strategy:
   matrix:
-    env: [esp32dev, esp32s3-touch-lcd-1_9, ttgo-t-display]
+    env: [esp32dev, esp32s3-touch-lcd-1_9, lilygo-t-display-s3, ttgo-t-display]
 
 steps:
   - name: Build ${{ matrix.env }}

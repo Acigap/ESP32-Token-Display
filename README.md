@@ -21,7 +21,7 @@
 
 ## Hardware
 
-รองรับ 3 บอร์ดหลักในโปรเจกต์นี้ โดยแต่ละรุ่นใช้ environment คนละตัวใน `platformio.ini`
+รองรับ 4 บอร์ดหลักในโปรเจกต์นี้ โดยแต่ละรุ่นใช้ environment คนละตัวใน `platformio.ini`
 
 ### 1) ESP32 All-in-One ST7789 1.9" (`env:esp32dev`)
 
@@ -81,6 +81,26 @@
 | Touch pins | SDA=47, SCL=48 |
 | ปุ่มสลับหน้า | แตะจอ (ทดแทน BOOT button) |
 | Backlight | GPIO 14, Active LOW |
+
+### 4) LilyGO T-Display-S3 (`env:lilygo-t-display-s3`)
+
+| คุณสมบัติจำเป็น | ค่า |
+|----------------|-----|
+| MCU | ESP32-S3 |
+| Display | ST7789 1.9" 170×320 (landscape 320×170) |
+| Library จอ | TFT_eSPI (8-bit parallel) |
+| ปุ่มสลับหน้า | BOOT (GPIO 0, ตาม `BUTTON_PIN`) |
+| Backlight | GPIO 38, Active HIGH |
+
+| Signal | GPIO |
+|--------|------|
+| CS | 6 |
+| DC | 7 |
+| RST | 5 |
+| WR | 8 |
+| RD | 9 |
+| D0..D7 | 39,40,41,42,45,46,47,48 |
+| BL | 38 |
 
 ---
 

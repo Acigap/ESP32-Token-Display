@@ -22,6 +22,7 @@ description: >
 |-----|-------|-----------------|-------|
 | `esp32dev` | ESP32-WROOM-32 class board | TFT_eSPI | BOOT button (GPIO0) |
 | `esp32s3-touch-lcd-1_9` | Waveshare ESP32-S3-Touch-LCD-1.9 | Arduino_GFX | CST816 touch tap |
+| `lilygo-t-display-s3` | LilyGO T-Display-S3 | TFT_eSPI (8-bit parallel) | BOOT button (GPIO0) |
 | `ttgo-t-display` | TTGO T-Display 1.14 | TFT_eSPI | BOOT button (GPIO0) |
 
 ---
@@ -35,18 +36,20 @@ pio device list --serial
 # Compile only (choose env)
 pio run -e esp32dev
 pio run -e esp32s3-touch-lcd-1_9
+pio run -e lilygo-t-display-s3
 pio run -e ttgo-t-display
 
 # Compile + flash
 pio run -e esp32dev --target upload
 pio run -e esp32s3-touch-lcd-1_9 --target upload
+pio run -e lilygo-t-display-s3 --target upload
 
 # Open serial monitor
 pio device monitor -p COM6 -b 115200 --filter esp32_exception_decoder
 ```
 
 Use the correct upload procedure per board:
-1. esp32dev / ttgo-t-display: if upload fails, hold BOOT, tap EN/RESET, release BOOT.
+1. esp32dev / ttgo-t-display / lilygo-t-display-s3: if upload fails, hold BOOT, tap EN/RESET, release BOOT.
 2. esp32s3-touch-lcd-1_9: usually no BOOT dance needed, but verify the selected COM and USB mode.
 3. Lower `upload_speed` temporarily if the link is unstable.
 4. Confirm `upload_port`/`monitor_port` belong to the selected env section.
